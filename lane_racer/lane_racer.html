@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>LANE RACER ’86</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --neon-pink:#FF2D95;
+    --neon-cyan:#00E5FF;
+    --neon-amber:#FFC53D;
+    --neon-lime:#5BFF7B;
+    --neon-red:#FF4D4D;
+    --void:#07040F;
+    --cab-1:#1A1030;
+    --cab-2:#2A1B4A;
+    --cab-3:#120A26;
+    --metal:#3A2C5C;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 8%, rgba(255,45,149,.16), transparent 70%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0,229,255,.10), transparent 70%),
+      #05030C;
+    font-family:'Press Start 2P',monospace;
+    color:#fff;display:flex;padding:clamp(6px,1.2vh,14px);
+  }
+  /* arcade room floor grid */
+  body::after{
+    content:'';position:fixed;left:0;right:0;bottom:0;height:26vh;pointer-events:none;z-index:0;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,45,149,.14) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(0deg, rgba(255,45,149,.14) 0 1px, transparent 1px 30px);
+    transform:perspective(200px) rotateX(62deg);transform-origin:bottom;opacity:.5;
+  }
+
+  /* ================= loader ================= */
+  #loader{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:#05030C;padding:20px;overflow:auto}
+  #loader.show{display:flex}
+  .lbox{max-width:640px;width:100%;background:#160C2E;border:2px solid rgba(0,229,255,.3);
+    border-radius:14px;padding:clamp(18px,3vh,30px);box-shadow:0 0 40px rgba(255,45,149,.2)}
+  .lbox h2{font-size:clamp(10px,1.8vh,15px);color:var(--neon-pink);letter-spacing:.1em;
+    text-shadow:0 0 12px var(--neon-pink);margin-bottom:14px}
+  .lbox p{font-family:'VT323',monospace;font-size:clamp(15px,2.1vh,20px);color:#9E8FCC;
+    line-height:1.35;margin-bottom:16px}
+  .lbox code{background:#241643;color:var(--neon-amber);padding:1px 6px}
+  .lnote{font-family:'VT323',monospace;font-size:16px;color:var(--neon-amber);
+    background:rgba(245,197,24,.1);padding:8px 11px;border-radius:5px;margin-bottom:14px}
+  .lslot{display:flex;align-items:center;gap:11px;border:2px solid #34215C;border-radius:9px;
+    padding:11px 13px;margin-bottom:9px;transition:all .2s}
+  .lslot.done{border-color:var(--neon-lime);background:rgba(91,255,123,.08)}
+  .ltick{width:22px;height:22px;flex:0 0 auto;background:#34215C;color:#fff;font-size:9px;
+    display:flex;align-items:center;justify-content:center;border-radius:50%}
+  .lslot.done .ltick{background:var(--neon-lime);color:#07040F}
+  .llbl{flex:1;font-size:clamp(7px,1.1vh,9px);letter-spacing:.1em;color:#C8BBEA;min-width:0}
+  .llbl b{display:block;font-family:'VT323',monospace;font-weight:400;font-size:15px;
+    letter-spacing:0;color:#8E7BC4;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lpick{font-size:clamp(7px,1.1vh,9px);letter-spacing:.1em;background:var(--neon-cyan);color:#07040F;
+    padding:9px 13px;cursor:pointer;white-space:nowrap}
+  .lpick input{display:none}
+  .ldrop{border:2px dashed #34215C;border-radius:9px;padding:15px;text-align:center;
+    font-size:clamp(7px,1.1vh,9px);letter-spacing:.1em;color:#8E7BC4;margin-top:6px}
+  .ldrop.over{border-color:var(--neon-lime);color:var(--neon-lime)}
+  .lerr{font-family:'VT323',monospace;font-size:16px;color:var(--neon-red);margin-top:12px;display:none}
+  .lerr.show{display:block}
+
+  /* ================= cabinet ================= */
+  #cabinet{
+    position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
+    max-width:1500px;margin:0 auto;min-width:0;
+    background:linear-gradient(180deg,var(--cab-2) 0%,var(--cab-1) 26%,var(--cab-3) 100%);
+    border-radius:clamp(14px,2vw,26px) clamp(14px,2vw,26px) 8px 8px;
+    padding:clamp(7px,1.1vh,13px);
+    box-shadow:
+      0 0 0 2px rgba(255,45,149,.25),
+      0 0 42px rgba(255,45,149,.20),
+      0 30px 70px -18px rgba(0,0,0,.9),
+      inset 0 2px 0 rgba(255,255,255,.10);
+  }
+
+  /* ---- marquee ---- */
+  #marquee{
+    flex:0 0 auto;display:flex;align-items:center;gap:clamp(8px,1.4vw,18px);
+    background:linear-gradient(180deg,#2E1A52,#160C2E 70%,#0E0722);
+    border:2px solid rgba(0,229,255,.30);border-radius:10px;
+    padding:clamp(5px,1vh,11px) clamp(10px,1.6vw,20px);
+    box-shadow:inset 0 0 26px rgba(255,45,149,.22), 0 4px 14px rgba(0,0,0,.6);
+  }
+  .grille{
+    flex:0 0 auto;width:clamp(34px,5vw,80px);height:clamp(16px,3vh,32px);border-radius:5px;
+    background:radial-gradient(circle, rgba(255,255,255,.22) 1px, transparent 1.4px) 0 0/7px 7px,
+               linear-gradient(180deg,#241543,#150C2A);
+    box-shadow:inset 0 0 10px rgba(0,0,0,.8);
+  }
+  #title{
+    flex:1;text-align:center;font-size:clamp(11px,2.1vh,21px);letter-spacing:.06em;line-height:1.5;
+    color:#fff;
+    text-shadow:0 0 6px #fff,0 0 16px var(--neon-pink),0 0 34px var(--neon-pink),0 3px 0 #7A0D45;
+    animation:flicker 7s infinite;white-space:nowrap;overflow:hidden;
+  }
+  #title .sub{
+    display:block;font-size:clamp(6px,1vh,9px);letter-spacing:.34em;margin-top:clamp(3px,.7vh,7px);
+    color:var(--neon-cyan);text-shadow:0 0 8px var(--neon-cyan);
+  }
+  @keyframes flicker{
+    0%,97%,100%{opacity:1}97.6%{opacity:.45}98.2%{opacity:1}98.6%{opacity:.6}99%{opacity:1}
+  }
+
+  /* ---- bezel + screens ---- */
+  #bezel{
+    flex:1;min-height:0;margin-top:clamp(6px,1vh,12px);
+    display:flex;gap:clamp(7px,1vw,13px);
+    background:linear-gradient(160deg,#0E0821,#070412);
+    border-radius:clamp(10px,1.4vw,18px);
+    padding:clamp(8px,1.3vh,16px);
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.05), inset 0 10px 30px rgba(0,0,0,.9);
+    position:relative;
+  }
+  .screw{
+    position:absolute;width:9px;height:9px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#6B5A8F,#2A1F45);
+    box-shadow:inset 0 0 2px rgba(0,0,0,.9);
+  }
+  .screw.tl{top:7px;left:7px} .screw.tr{top:7px;right:7px}
+  .screw.bl{bottom:7px;left:7px} .screw.br{bottom:7px;right:7px}
+
+  .crt{
+    position:relative;border-radius:clamp(8px,1.1vw,16px);overflow:hidden;
+    background:#05030E;
+    box-shadow:
+      inset 0 0 60px rgba(0,0,0,.95),
+      inset 0 0 0 2px rgba(0,229,255,.18),
+      0 0 26px rgba(0,229,255,.12);
+  }
+  #screen-main{flex:0 0 auto;height:100%;aspect-ratio:18/25;max-width:100%;min-width:0}
+  .art{
+    flex:1;min-width:0;border-radius:10px;overflow:hidden;position:relative;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,45,149,.14) 0 10px, transparent 10px 24px),
+      linear-gradient(180deg,#241643,#120A26);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+  .art::before{
+    content:'LANE RACER';position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%) rotate(-90deg);white-space:nowrap;
+    font-size:clamp(7px,1.2vh,11px);letter-spacing:.5em;color:rgba(0,229,255,.45);
+    text-shadow:0 0 10px rgba(0,229,255,.5);
+  }
+  .art::after{
+    content:'';position:absolute;left:50%;transform:translateX(-50%);
+    top:10px;bottom:10px;width:3px;border-radius:2px;
+    background:linear-gradient(180deg,transparent,rgba(255,45,149,.6),transparent);
+  }
+  @media (max-width:1180px){ .art{display:none} }
+  #screen-side{flex:0 0 clamp(230px,23vw,320px);display:flex;flex-direction:column;min-width:0}
+
+  #road{display:block;width:100%;height:100%}
+
+  /* CRT overlays */
+  .scan{
+    position:absolute;inset:0;pointer-events:none;z-index:6;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.26) 0 1px, transparent 1px 3px);
+    mix-blend-mode:multiply;
+  }
+  .glass{
+    position:absolute;inset:0;pointer-events:none;z-index:7;
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 46%, transparent 52%, rgba(0,0,0,.55) 100%),
+      linear-gradient(105deg, rgba(255,255,255,.09) 0%, transparent 32%, transparent 75%, rgba(255,255,255,.05) 100%);
+    border-radius:inherit;
+  }
+  .roll{
+    position:absolute;left:0;right:0;height:70px;pointer-events:none;z-index:8;
+    background:linear-gradient(180deg,transparent,rgba(255,255,255,.045),transparent);
+    animation:roll 7.5s linear infinite;
+  }
+  @keyframes roll{0%{top:-80px}100%{top:105%}}
+
+  /* boot flash */
+  #boot{position:absolute;inset:0;z-index:20;background:#fff;animation:boot 1.1s ease-out forwards;pointer-events:none}
+  @keyframes boot{
+    0%{opacity:1;transform:scaleY(.006)}
+    26%{opacity:.9;transform:scaleY(.006)}
+    42%{opacity:.55;transform:scaleY(1)}
+    100%{opacity:0;transform:scaleY(1)}
+  }
+
+  /* ---- in-screen HUD ---- */
+  #hud{
+    position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none;
+    display:flex;align-items:flex-start;gap:clamp(8px,1.4vw,20px);
+    padding:clamp(7px,1.3vh,14px) clamp(9px,1.4vw,18px);
+    font-size:clamp(6px,1.05vh,10px);letter-spacing:.08em;
+    background:linear-gradient(180deg, rgba(5,3,14,.75), transparent);
+  }
+  .hud-k{color:var(--neon-cyan);text-shadow:0 0 8px rgba(0,229,255,.8);display:block;margin-bottom:5px}
+  .hud-v{color:#fff;text-shadow:0 0 8px rgba(255,255,255,.6);font-size:clamp(8px,1.5vh,14px)}
+  #hud-lives{margin-left:auto;text-align:right}
+  #hearts{display:flex;gap:4px;justify-content:flex-end;margin-top:4px}
+  .life{width:clamp(9px,1.4vh,13px);height:clamp(9px,1.4vh,13px);
+    background:var(--neon-pink);clip-path:polygon(50% 0,100% 0,100% 50%,50% 100%,0 50%,0 0);
+    box-shadow:0 0 8px var(--neon-pink);transition:all .3s}
+  .life.gone{background:#3A2C5C;box-shadow:none}
+
+  #toast{
+    position:absolute;left:50%;top:26%;transform:translate(-50%,6px) scale(.9);z-index:9;
+    font-size:clamp(14px,3vh,30px);letter-spacing:.06em;opacity:0;pointer-events:none;
+    transition:opacity .18s,transform .18s;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+  #toast.good{color:var(--neon-lime);text-shadow:0 0 10px var(--neon-lime),0 0 28px var(--neon-lime)}
+  #toast.bad{color:var(--neon-red);text-shadow:0 0 10px var(--neon-red),0 0 28px var(--neon-red)}
+  #toast.info{color:var(--neon-amber);text-shadow:0 0 10px var(--neon-amber),0 0 28px var(--neon-amber)}
+
+  /* ---- side monitor (question) ---- */
+  #qwrap{flex:1;display:flex;flex-direction:column;padding:clamp(10px,1.6vh,16px);min-height:0;position:relative;z-index:5}
+  #qtop{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:clamp(6px,1vh,9px)}
+  #qno{color:var(--neon-cyan);text-shadow:0 0 8px rgba(0,229,255,.8)}
+  #subject{color:var(--neon-pink);text-shadow:0 0 8px rgba(255,45,149,.8)}
+
+  #barwrap{margin-top:clamp(8px,1.3vh,13px);display:flex;align-items:center;gap:8px}
+  #bar{flex:1;height:clamp(11px,1.7vh,16px);display:flex;gap:2px}
+  .seg{flex:1;background:#241640;box-shadow:inset 0 0 3px rgba(0,0,0,.8);transition:background .1s,box-shadow .1s}
+  .seg.on{background:var(--neon-lime);box-shadow:0 0 7px var(--neon-lime)}
+  .seg.on.mid{background:var(--neon-amber);box-shadow:0 0 7px var(--neon-amber)}
+  .seg.on.low{background:var(--neon-red);box-shadow:0 0 7px var(--neon-red)}
+  #tnum{font-size:clamp(11px,1.9vh,16px);color:#fff;min-width:2ch;text-align:right;
+    text-shadow:0 0 8px rgba(255,255,255,.7)}
+
+  #qbody{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
+    margin:clamp(10px,1.6vh,16px) 0;overflow:hidden}
+  #qtext{
+    font-family:'VT323',monospace;font-size:clamp(24px,4.2vh,42px);line-height:1.1;color:#fff;
+    text-shadow:0 0 10px rgba(0,229,255,.75);letter-spacing:.02em;
+  }
+  #qhint{font-size:clamp(5.5px,.95vh,8px);color:#7C6BA8;line-height:1.9;margin-top:clamp(8px,1.2vh,12px)}
+  #idle{font-family:'VT323',monospace;font-size:clamp(19px,3.2vh,30px);color:#6E5C9E;line-height:1.15}
+  #idle b{color:var(--neon-cyan);text-shadow:0 0 10px rgba(0,229,255,.7);font-weight:400}
+
+  #answers{display:flex;flex-direction:column;gap:clamp(5px,.8vh,8px)}
+  .ans{
+    display:flex;align-items:center;gap:9px;padding:clamp(6px,1vh,10px) 9px;
+    border:2px solid #34215C;background:rgba(26,16,48,.7);transition:all .15s;
+  }
+  .ans .key{
+    flex:0 0 auto;width:clamp(18px,2.6vh,24px);height:clamp(18px,2.6vh,24px);
+    display:flex;align-items:center;justify-content:center;
+    font-size:clamp(6px,1vh,9px);color:#8E7BC4;border:2px solid #34215C;
+  }
+  .ans .txt{font-family:'VT323',monospace;font-size:clamp(17px,2.7vh,26px);color:#B7A7E0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1}
+  .ans.sel{border-color:var(--neon-cyan);background:rgba(0,229,255,.10);box-shadow:0 0 14px rgba(0,229,255,.3)}
+  .ans.sel .txt{color:#fff;text-shadow:0 0 9px var(--neon-cyan)}
+  .ans.sel .key{border-color:var(--neon-cyan);color:var(--neon-cyan)}
+  .ans.right{border-color:var(--neon-lime);background:rgba(91,255,123,.14);box-shadow:0 0 16px rgba(91,255,123,.35)}
+  .ans.right .txt{color:var(--neon-lime);text-shadow:0 0 9px var(--neon-lime)}
+  .ans.miss{border-color:var(--neon-red);background:rgba(255,77,77,.14)}
+  .ans.miss .txt{color:var(--neon-red)}
+
+  /* ---- control deck ---- */
+  #deck{
+    flex:0 0 auto;margin-top:clamp(6px,1vh,12px);
+    display:flex;align-items:center;gap:clamp(10px,1.8vw,26px);
+    padding:clamp(8px,1.4vh,16px) clamp(12px,2vw,26px);
+    border-radius:10px;
+    background:linear-gradient(180deg,#3A2761 0%,#241644 40%,#160D2E 100%);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -6px 16px rgba(0,0,0,.7), 0 6px 18px rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.06);
+  }
+
+  .btn-arcade{
+    position:relative;flex:0 0 auto;border:none;cursor:pointer;background:none;padding:0;
+    width:clamp(52px,8vh,78px);height:clamp(52px,8vh,78px);border-radius:50%;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+    transition:transform .08s;
+  }
+  .btn-arcade .rim{
+    position:absolute;inset:0;border-radius:50%;
+    background:linear-gradient(180deg,#6B5A8F,#241A40);
+    box-shadow:0 5px 0 #160D2E, 0 8px 14px rgba(0,0,0,.7);
+  }
+  .btn-arcade .cap{
+    position:absolute;inset:clamp(6px,.9vh,9px);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:clamp(16px,2.6vh,24px);color:#0B0620;
+    background:radial-gradient(circle at 38% 30%, #8CF4FF, var(--neon-cyan) 55%, #0090A8 100%);
+    box-shadow:inset 0 -4px 8px rgba(0,0,0,.35), 0 0 18px rgba(0,229,255,.55);
+    transition:transform .08s, box-shadow .18s;
+  }
+  #btn-right .cap{background:radial-gradient(circle at 38% 30%, #FF9BD0, var(--neon-pink) 55%, #A80F5C 100%);
+    box-shadow:inset 0 -4px 8px rgba(0,0,0,.35), 0 0 18px rgba(255,45,149,.55)}
+  .btn-arcade:active,.btn-arcade.press{transform:translateY(4px)}
+  .btn-arcade:active .cap,.btn-arcade.press .cap{transform:translateY(2px);box-shadow:inset 0 -2px 5px rgba(0,0,0,.5)}
+  .btn-arcade:disabled{opacity:.35;cursor:default}
+  .btn-arcade.live .cap{animation:capglow 1s ease-in-out infinite}
+  @keyframes capglow{0%,100%{box-shadow:inset 0 -4px 8px rgba(0,0,0,.35),0 0 18px rgba(0,229,255,.5)}
+    50%{box-shadow:inset 0 -4px 8px rgba(0,0,0,.35),0 0 34px rgba(255,197,61,.95)}}
+  .btn-label{
+    display:block;text-align:center;font-size:clamp(5.5px,.95vh,8px);letter-spacing:.16em;
+    color:#9B8AC9;margin-top:6px;
+  }
+
+  .deck-wing{flex:1;display:flex;min-width:0;align-items:center;gap:clamp(5px,.9vh,9px)}
+  .deck-wing.left{flex-direction:column;align-items:flex-start;justify-content:center}
+  .deck-wing.right{justify-content:flex-end}
+  #btn-cluster{flex:0 0 auto;display:flex;gap:clamp(9px,1.2vw,16px)}
+  .btn-slot{display:flex;flex-direction:column;align-items:center}
+  #leds{display:flex;gap:clamp(7px,1.1vw,13px)}
+  .led{
+    width:clamp(26px,4.4vw,52px);height:clamp(10px,1.5vh,15px);border-radius:3px;
+    background:#241640;box-shadow:inset 0 0 5px rgba(0,0,0,.9);transition:all .18s;
+  }
+  .led.on{background:var(--neon-cyan);box-shadow:0 0 14px var(--neon-cyan)}
+  .led.blocked{background:var(--neon-red);box-shadow:0 0 10px rgba(255,77,77,.7);opacity:.75}
+  #deck-cap{font-size:clamp(5.5px,.95vh,8px);letter-spacing:.2em;color:#7C6BA8}
+
+  #coin{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;
+  }
+  .slot{
+    width:clamp(30px,4vw,46px);height:clamp(8px,1.2vh,12px);border-radius:2px;
+    background:linear-gradient(180deg,#0A0618,#1C1136);
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.08);
+  }
+  #coin span{font-size:clamp(5px,.85vh,7px);letter-spacing:.14em;color:var(--neon-amber);
+    text-shadow:0 0 8px rgba(255,197,61,.7);animation:blink 1.4s steps(1) infinite}
+  @keyframes blink{0%,55%{opacity:1}56%,100%{opacity:.18}}
+
+  /* ---- game over ---- */
+  #over{
+    position:absolute;inset:0;z-index:15;display:none;align-items:center;justify-content:center;
+    background:rgba(5,3,14,.8);
+  }
+  #over.show{display:flex}
+  #obox{text-align:center;padding:clamp(20px,3vh,34px)}
+  #obox h2{font-size:clamp(18px,3.6vh,34px);color:var(--neon-red);letter-spacing:.1em;
+    text-shadow:0 0 12px var(--neon-red),0 0 34px var(--neon-red);margin-bottom:clamp(12px,2vh,20px)}
+  #obox .line{font-family:'VT323',monospace;font-size:clamp(17px,2.6vh,25px);color:#B7A7E0;line-height:1.4}
+  #obox .score{font-size:clamp(19px,3.2vh,30px);color:var(--neon-amber);margin:clamp(12px,2vh,20px) 0;
+    text-shadow:0 0 12px var(--neon-amber)}
+  .obtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  #obox button.ghost{background:transparent;color:var(--neon-cyan);
+    box-shadow:inset 0 0 0 2px rgba(0,229,255,.55)}
+  #attract{
+    position:absolute;inset:0;z-index:16;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,3,14,.92);
+  }
+  #attract.hide{display:none}
+  #abox{text-align:center;padding:clamp(18px,3vh,30px);max-width:92%}
+  #abox h2{font-size:clamp(15px,3vh,28px);color:var(--neon-pink);letter-spacing:.08em;
+    text-shadow:0 0 12px var(--neon-pink),0 0 32px var(--neon-pink);margin-bottom:clamp(8px,1.6vh,14px)}
+  #abox .line{font-family:'VT323',monospace;font-size:clamp(16px,2.4vh,23px);color:#B7A7E0;line-height:1.35}
+  #a-namewrap{display:block;margin:clamp(14px,2.4vh,22px) 0}
+  #a-nametag{display:block;font-size:clamp(6px,1vh,9px);letter-spacing:.2em;color:var(--neon-cyan);margin-bottom:8px}
+  #a-name{
+    width:min(240px,80%);background:#120A26;border:2px solid rgba(0,229,255,.5);color:#fff;
+    font-family:'Press Start 2P',monospace;font-size:clamp(9px,1.5vh,13px);letter-spacing:.1em;
+    padding:11px 12px;text-align:center;outline:none;text-transform:uppercase;
+  }
+  #a-name:focus{border-color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,.4)}
+  #obox button{
+    font-family:'Press Start 2P',monospace;font-size:clamp(8px,1.4vh,12px);letter-spacing:.12em;
+    background:var(--neon-pink);color:#0B0620;border:none;padding:14px 26px;cursor:pointer;
+    box-shadow:0 5px 0 #8E0A4E, 0 0 22px rgba(255,45,149,.6);transition:transform .08s;
+  }
+  #obox button:active{transform:translateY(4px);box-shadow:0 1px 0 #8E0A4E}
+
+  @media (max-width:920px),(max-height:520px){
+    html,body{overflow:auto}
+    #bezel{flex-direction:column}
+    #screen-side{flex:0 0 auto;min-height:220px}
+    #screen-main{min-height:46vh}
+  }
+</style>
+</head>
+<body data-config="game.config.json">
+
+<div id="loader">
+  <div class="lbox">
+    <h2>LANE RACER — SETUP</h2>
+    <div class="lnote" id="l-note"></div>
+    <p>A browser will not read files sitting next to a page opened straight from disk.
+       Serve the folder with <code>python3 -m http.server</code>, or hand the two files over below
+       — one at a time is fine.</p>
+    <div class="lslot" id="l-slot-config">
+      <span class="ltick">1</span>
+      <span class="llbl">GAME CONFIG<b id="l-sub-config">game.config.json — not loaded</b></span>
+      <label class="lpick">CHOOSE<input type="file" accept=".json" id="l-in-config"></label>
+    </div>
+    <div class="lslot" id="l-slot-bank">
+      <span class="ltick">2</span>
+      <span class="llbl">QUESTIONS<b id="l-sub-bank">questions.json — not loaded</b></span>
+      <label class="lpick">CHOOSE<input type="file" accept=".json" id="l-in-bank" multiple></label>
+    </div>
+    <div class="ldrop" id="l-drop">OR DROP BOTH FILES HERE —
+      <label class="lpick">WHOLE FOLDER<input type="file" id="l-in-dir" webkitdirectory directory multiple></label>
+    </div>
+    <div class="lerr" id="l-err"></div>
+  </div>
+</div>
+
+<div id="cabinet">
+
+  <div id="marquee">
+    <div class="grille"></div>
+    <div id="title">LANE RACER ’86<span class="sub">QUIZ &nbsp;·&nbsp; HIGHWAY &nbsp;·&nbsp; REFLEX</span></div>
+    <div class="grille"></div>
+  </div>
+
+  <div id="bezel">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div class="art"></div>
+
+    <div class="crt" id="screen-main">
+      <canvas id="road"></canvas>
+
+      <div id="hud">
+        <div><span class="hud-k">SCORE</span><span class="hud-v" id="m-score">000000</span></div>
+        <div><span class="hud-k">HI</span><span class="hud-v" id="m-hi">010000</span></div>
+        <div><span class="hud-k">STAGE</span><span class="hud-v" id="m-level">01</span></div>
+        <div><span class="hud-k">KM/H</span><span class="hud-v" id="m-speed">180</span></div>
+        <div id="hud-lives"><span class="hud-k">CARS</span><div id="hearts"></div></div>
+      </div>
+
+      <div id="toast"></div>
+
+      <div id="over">
+        <div id="obox">
+          <h2 id="o-title">GAME OVER</h2>
+          <div class="line" id="o-msg"></div>
+          <div class="score" id="o-score">000000</div>
+          <div class="obtns">
+            <button id="o-btn">PRESS START</button>
+            <button id="o-save" class="ghost">SAVE RESULTS</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="attract">
+        <div id="abox">
+          <h2 id="a-title">LANE RACER</h2>
+          <div class="line" id="a-blurb"></div>
+          <label id="a-namewrap"><span id="a-nametag">ENTER NAME</span>
+            <input id="a-name" maxlength="14" autocomplete="off" spellcheck="false"></label>
+          <button id="a-btn">PRESS START</button>
+        </div>
+      </div>
+
+      <div class="scan"></div>
+      <div class="glass"></div>
+      <div class="roll"></div>
+      <div id="boot"></div>
+    </div>
+
+    <div class="art"></div>
+
+    <div class="crt" id="screen-side">
+      <div id="qwrap">
+        <div id="qtop">
+          <span id="qno">SYSTEM READY</span>
+          <span id="subject"></span>
+        </div>
+
+        <div id="barwrap">
+          <div id="bar"></div>
+          <div id="tnum">—</div>
+        </div>
+
+        <div id="qbody">
+          <div id="idle">AWAITING<br><b>SIGN GANTRY</b></div>
+        </div>
+
+        <div id="answers"></div>
+        <div id="qhint">USE THE LANE BUTTONS BELOW</div>
+      </div>
+      <div class="scan"></div>
+      <div class="glass"></div>
+    </div>
+  </div>
+
+  <div id="deck">
+    <div class="deck-wing left">
+      <div id="leds">
+        <div class="led" data-lane="0"></div>
+        <div class="led" data-lane="1"></div>
+        <div class="led" data-lane="2"></div>
+      </div>
+      <div id="deck-cap">LANE POSITION</div>
+    </div>
+
+    <div id="btn-cluster">
+      <div class="btn-slot">
+        <button class="btn-arcade" id="btn-left" aria-label="Move left">
+          <span class="rim"></span><span class="cap">&#9664;</span>
+        </button>
+        <span class="btn-label">LEFT</span>
+      </div>
+      <div class="btn-slot">
+        <button class="btn-arcade" id="btn-right" aria-label="Move right">
+          <span class="rim"></span><span class="cap">&#9654;</span>
+        </button>
+        <span class="btn-label">RIGHT</span>
+      </div>
+    </div>
+
+    <div class="deck-wing right">
+      <div id="coin">
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <span>INSERT COIN</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =============================================================
+   LANE RACER '86 — overhead highway, arcade cabinet edition
+   True top-down view. A question hits the side monitor five
+   seconds before the sign banner reaches you; each lane under
+   the banner carries one answer. Traffic is kept out of every
+   answer zone so all three lanes stay reachable.
+   ============================================================= */
+
+/* ---------- everything below is filled in from game.config.json ---------- */
+let CFG = null, BANK = null, QUESTIONS = [];
+let LEAD_SECONDS, QUESTION_SECONDS, GAP_SECONDS, PER_LEVEL, START_LIVES,
+    TRAFFIC_MARGIN, BASE_SPEED, QUIZ_CARS_MAX, QUIZ_CAR_CHANCE, QUIZ_WINDOW, MIN_SPEED;
+const SEGMENTS = 10;
+let P = {}, CAR_SKINS = [], PLAYER_SKIN = {}, LANES = 3;
+
+const canvas = document.getElementById('road');
+const ctx = canvas.getContext('2d');
+
+if (!ctx.roundRect) {
+  ctx.roundRect = function (x, y, w, h, r) {
+    const rr = Math.min(r, Math.abs(w)/2, Math.abs(h)/2);
+    this.beginPath();
+    this.moveTo(x+rr, y);
+    this.arcTo(x+w, y, x+w, y+h, rr);
+    this.arcTo(x+w, y+h, x, y+h, rr);
+    this.arcTo(x, y+h, x, y, rr);
+    this.arcTo(x, y, x+w, y, rr);
+    this.closePath();
+    return this;
+  };
+}
+
+function applyConfig(cfg) {
+  CFG = cfg;
+  const t = cfg.timing, sp = cfg.speed, tr = cfg.traffic, th = cfg.theme;
+
+  LEAD_SECONDS = t.leadSeconds; QUESTION_SECONDS = t.questionSeconds;
+  GAP_SECONDS = t.gapSeconds;   PER_LEVEL = t.questionsPerLevel;
+  START_LIVES = cfg.lives.start;
+  BASE_SPEED = sp.base; MIN_SPEED = sp.minDuringQuiz;
+  TRAFFIC_MARGIN = tr.marginBeforeZone;
+  QUIZ_CARS_MAX = tr.quizCarsMax; QUIZ_CAR_CHANCE = tr.quizCarChance; QUIZ_WINDOW = tr.quizWindow;
+  LANES = cfg.game.lanes || 3;
+
+  P = Object.assign({}, th.road, th.terrain, {
+    signBody: th.sign.body, signRim: th.sign.rim, signInk: th.sign.ink,
+    good: th.sign.good, bad: th.sign.bad, pick: th.sign.pick
+  });
+  CAR_SKINS = th.cars;
+  PLAYER_SKIN = th.playerCar;
+
+  // cabinet neon
+  const r = document.documentElement.style, c = th.cabinet;
+  r.setProperty('--neon-pink', c.neonPink);   r.setProperty('--neon-cyan', c.neonCyan);
+  r.setProperty('--neon-amber', c.neonAmber); r.setProperty('--neon-lime', c.neonLime);
+  r.setProperty('--neon-red', c.neonRed);
+
+  // wording
+  document.getElementById('title').innerHTML =
+    `${cfg.game.title}<span class="sub">${cfg.game.subtitle}</span>`;
+  document.title = cfg.game.title;
+  document.getElementById('o-title').textContent = cfg.ui.gameOver;
+}
+
+/* merge every question file into one flat list, tagged with its subject */
+function applyBank(banks) {
+  const out = [];
+  banks.forEach(b => Object.entries(b.sets || {}).forEach(([subject, list]) => {
+    list.forEach(q => out.push({
+      id: q.id, s: subject, q: q.q, a: q.answer,
+      d: q.distractors, lv: q.level || 1
+    }));
+  }));
+  BANK = banks[0];
+  QUESTIONS = out;
+}
+
+/* ---------- layout ---------- */
+let VW = 0, VH = 0, DPR = 1;
+let ROAD_W = 0, ROAD_L = 0, ROAD_R = 0, LANE_W = 0;
+let PLAYER_Y = 0, CAR_W = 0, CAR_H = 0, RAIL_W = 0;
+
+function layout() {
+  const r = document.getElementById('screen-main').getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  VW = Math.max(300, r.width);
+  VH = Math.max(240, r.height);
+  canvas.width = Math.round(VW * DPR);
+  canvas.height = Math.round(VH * DPR);
+  canvas.style.width = VW + 'px';
+  canvas.style.height = VH + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  const L = CFG.layout;
+  ROAD_W = Math.min(VW * L.roadWidthFrac, L.roadWidthMax);
+  ROAD_L = Math.round(VW / 2 - ROAD_W / 2);
+  ROAD_R = ROAD_L + ROAD_W;
+  LANE_W = ROAD_W / LANES;
+  RAIL_W = Math.max(12, Math.round(ROAD_W * 0.042));
+  PLAYER_Y = VH - Math.max(L.playerYMin, VH * L.playerYFrac);
+  CAR_W = Math.min(LANE_W * L.carWidthFrac, L.carWidthMax);
+  CAR_H = CAR_W * L.carAspect;
+}
+
+const laneX = i => ROAD_L + LANE_W * (i + 0.5);
+const yFor  = z => PLAYER_Y - (z - S.scroll);
+
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const pad = (n, w) => String(Math.max(0, Math.round(n))).padStart(w, '0');
+
+/* run fn for every world-aligned stripe of the given period */
+function stripes(period, fn) {
+  const base = ((PLAYER_Y + S.scroll) % period + period) % period;
+  for (let y = base - period; y < VH + period; y += period) fn(y);
+}
+
+/* ---------- state ---------- */
+const S = {
+  level:1, score:0, shownScore:0, hi:10000, lives:3, student:'',
+  lane:1, carX:0, scroll:0, speed:BASE_SPEED, cruise:BASE_SPEED,
+  running:false, over:false,
+  answered:0, correct:0, asked:0, streak:0, best:0,
+  invuln:0, shake:0, flash:0, flashColor:'255,255,255'
+};
+
+let traffic = [], gantries = [], particles = [], floaters = [], pickups = [];
+let lastTrafficZ = 600, questionPool = [], active = null;
+
+/* =============================================================
+   Questions and sign banners
+   ============================================================= */
+function pickQuestion() {
+  if (!questionPool.length) {
+    const tier = Math.min(CFG.difficulty.maxTier,
+                          Math.ceil(S.level / CFG.difficulty.levelsPerTier));
+    questionPool = QUESTIONS.filter(q => q.lv <= tier);
+    for (let i = questionPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [questionPool[i], questionPool[j]] = [questionPool[j], questionPool[i]];
+    }
+  }
+  return questionPool.pop();
+}
+
+class Sign {
+  constructor(z, q) {
+    this.z = z; this.q = q;
+    const opts = [q.a, ...q.d];
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+    this.answers = opts;
+    this.correctLane = opts.indexOf(q.a);
+    this.lead = S.cruise * 60 * LEAD_SECONDS;
+    this.revealed = false; this.judged = false;
+    this.result = null; this.pickedLane = null;
+    this.timeLeft = QUESTION_SECONDS;
+    this.quizCars = 0;
+  }
+  get d() { return this.z - S.scroll; }
+  get clearFrom() { return this.z - this.lead - TRAFFIC_MARGIN; }
+  get clearTo()   { return this.z + CFG.traffic.zoneTailLength; }
+  /* nothing at all is allowed in the final approach */
+  get quizWindowEnd() { return this.clearFrom + (this.lead + TRAFFIC_MARGIN) * QUIZ_WINDOW; }
+}
+
+function scheduleSigns() {
+  while (gantries.length < 3) {
+    const last = gantries.length ? gantries[gantries.length - 1].z
+      : S.scroll + S.cruise * 60 * (LEAD_SECONDS + 2);
+    gantries.push(new Sign(last + S.cruise * 60 * GAP_SECONDS, pickQuestion()));
+  }
+}
+
+function inAnswerZone(z) {
+  return gantries.some(g => z > g.clearFrom && z < g.clearTo);
+}
+
+/* Traffic is laid down as a chain of clusters, each leaving one lane open.
+   A cluster's open lane is never more than one lane away from the previous
+   one, and the spacing grows with the sideways distance, so there is always
+   a driveable corridor through the field. */
+let prevFreeLane = 1;
+
+function spawnTraffic() {
+  let guard = 0;
+  while (lastTrafficZ < S.scroll + VH + 1600 && guard++ < 50) {
+    // the open lane drifts by at most one lane per cluster
+    const choices = [prevFreeLane - 1, prevFreeLane, prevFreeLane + 1].filter(l => l >= 0 && l <= 2);
+    const free = choices[Math.floor(Math.random() * choices.length)];
+    const shift = Math.abs(free - prevFreeLane);
+
+    // room to complete the lane change, plus room to sit in the gap
+    const T = CFG.traffic;
+    const need = CAR_H * T.clusterGapCars + shift * (CAR_H * T.laneShiftGapCars);
+    let z = lastTrafficZ + need + Math.random() * CAR_H * T.spawnJitterCars;
+
+    // A quiz zone takes one car at most, only in its opening stretch, and
+    // only half the time. The rest of the run-up is empty road.
+    let quizFor = null, moved = true, guard2 = 0;
+    while (moved && guard2++ < 8) {
+      moved = false;
+      for (const g of gantries) {
+        if (z > g.clearFrom && z < g.clearTo) {
+          if (z < g.quizWindowEnd && g.quizCars < QUIZ_CARS_MAX && Math.random() < QUIZ_CAR_CHANCE) {
+            g.quizCars++; quizFor = g;
+          } else {
+            z = g.clearTo + 200 + Math.random() * 240; quizFor = null; moved = true;
+          }
+        }
+      }
+    }
+
+    const others = [0, 1, 2].filter(l => l !== free);
+    // two-wide blocks are the interesting ones, but never all three.
+    // inside a quiz zone it is always a single car.
+    const blocked = quizFor ? [others[Math.floor(Math.random() * others.length)]]
+                  : (Math.random() < T.twoLaneBlockChance
+                      ? others : [others[Math.floor(Math.random() * others.length)]]);
+
+    const v = S.cruise * (quizFor ? T.quizCarSpeedFactor
+              : T.speedFactorMin + Math.random() * (T.speedFactorMax - T.speedFactorMin));
+    traffic.push({ z, blocked, free, v, vWant: v, quizFor,
+      skin: Math.floor(Math.random() * CAR_SKINS.length) });
+    lastTrafficZ = z;
+    prevFreeLane = free;
+  }
+}
+
+/* Cars hold station: they never close on the cluster ahead, never merge into
+   one another, and never drift into an answer zone. That keeps the corridor
+   the spawner laid down intact no matter how the speeds differ. */
+function stepTraffic(dt) {
+  const order = traffic.slice().sort((a, b) => b.z - a.z);   // furthest ahead first
+  for (let i = 0; i < order.length; i++) {
+    const t = order[i];
+    t.v = t.vWant;
+    t.z += t.v * dt;
+
+    // queue behind the cluster in front
+    const ahead = order[i - 1];
+    if (ahead) {
+      const gap = CAR_H * CFG.traffic.clusterGapCars
+                + Math.abs(t.free - ahead.free) * CAR_H * CFG.traffic.laneShiftGapCars;
+      if (t.z > ahead.z - gap) { t.z = ahead.z - gap; t.v = ahead.v; }
+    }
+
+    // stay out of every answer zone — bar the one car allowed into a quiz
+    // run-up, which is still held inside its opening stretch
+    for (const g of gantries) {
+      if (t.quizFor === g) { t.z = Math.min(t.z, g.quizWindowEnd - CAR_H * 1.2); continue; }
+      if (t.z > g.clearFrom - 60 && t.z < g.clearTo) t.z = Math.min(t.z, g.clearFrom - 60);
+    }
+  }
+}
+
+/* =============================================================
+   Terrain
+   ============================================================= */
+function drawTerrain() {
+  const lTerr = ROAD_L - RAIL_W;
+  const rTerr = ROAD_R + RAIL_W;
+
+  // --- left: ocean ---
+  ctx.fillStyle = P.water;
+  ctx.fillRect(0, 0, lTerr, VH);
+  ctx.fillStyle = P.waterDeep;
+  stripes(150, y => ctx.fillRect(0, y, lTerr, 26));
+  ctx.fillStyle = P.foam;
+  stripes(74, y => {
+    for (let k = 0; k < 5; k++) {
+      const seed = Math.floor((S.scroll + y) / 74) * 7 + k;
+      const w = 16 + hash(seed) * 26;
+      const x = hash(seed + 3) * Math.max(10, lTerr - w - 8);
+      ctx.fillRect(x, y + (k % 2) * 22, w, 3);
+    }
+  });
+  // sea wall
+  ctx.fillStyle = '#6E6E7A';
+  ctx.fillRect(lTerr - 10, 0, 10, VH);
+  ctx.fillStyle = '#55555F';
+  stripes(40, y => ctx.fillRect(lTerr - 10, y, 10, 5));
+
+  // --- right: grass with scenery ---
+  ctx.fillStyle = P.grass;
+  ctx.fillRect(rTerr, 0, VW - rTerr, VH);
+  ctx.fillStyle = P.grassDark;
+  stripes(120, y => ctx.fillRect(rTerr, y, VW - rTerr, 30));
+  // sandy verge
+  ctx.fillStyle = P.sand;
+  ctx.fillRect(rTerr, 0, 14, VH);
+
+  const w = VW - rTerr;
+  if (w > 26) {
+    stripes(190, y => {
+      const seed = Math.floor((S.scroll + y) / 190) * 13;
+      const bx = rTerr + 26 + hash(seed) * Math.max(6, w - 60);
+      const r = 13 + hash(seed + 2) * 9;
+      ctx.fillStyle = '#25562C';
+      ctx.beginPath(); ctx.ellipse(bx + 3, y + 5, r, r * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = P.bush;
+      ctx.beginPath(); ctx.ellipse(bx, y, r, r * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3E8A46';
+      ctx.beginPath(); ctx.ellipse(bx - r * 0.3, y - r * 0.3, r * 0.45, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+}
+
+/* =============================================================
+   Barriers
+   ============================================================= */
+function drawRails() {
+  const lx = ROAD_L - RAIL_W, rx = ROAD_R;
+  [lx, rx].forEach((x, side) => {
+    ctx.fillStyle = P.railDark;
+    ctx.fillRect(x, 0, RAIL_W, VH);
+    // diagonal hazard stripes
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, 0, RAIL_W, VH); ctx.clip();
+    ctx.fillStyle = P.railStripe;
+    stripes(30, y => {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + RAIL_W, y - RAIL_W);
+      ctx.lineTo(x + RAIL_W, y - RAIL_W + 13);
+      ctx.lineTo(x, y + 13);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.restore();
+    // top highlight
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillRect(x, 0, 2, VH);
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.fillRect(x + RAIL_W - 2, 0, 2, VH);
+  });
+}
+
+/* =============================================================
+   Road
+   ============================================================= */
+function drawRoad() {
+  ctx.fillStyle = P.asphalt;
+  ctx.fillRect(ROAD_L, 0, ROAD_W, VH);
+
+  // tarmac patches so the surface reads as moving
+  ctx.fillStyle = P.patch;
+  stripes(CFG.layout.patchPeriod, y => ctx.fillRect(ROAD_L, y, ROAD_W, 70));
+  ctx.fillStyle = 'rgba(255,255,255,.05)';
+  stripes(97, y => ctx.fillRect(ROAD_L, y, ROAD_W, 2));
+
+  // solid edge lines
+  ctx.fillStyle = P.edge;
+  ctx.fillRect(ROAD_L + 5, 0, 5, VH);
+  ctx.fillRect(ROAD_R - 10, 0, 5, VH);
+
+  // red/white kerb teeth just inside the rails
+  stripes(CFG.layout.kerbPeriod, y => {
+    ctx.fillStyle = P.curbA;
+    ctx.fillRect(ROAD_L, y, 5, 26);
+    ctx.fillRect(ROAD_R - 5, y + 26, 5, 26);
+    ctx.fillStyle = P.curbB;
+    ctx.fillRect(ROAD_L, y + 26, 5, 26);
+    ctx.fillRect(ROAD_R - 5, y, 5, 26);
+  });
+
+  // dashed lane dividers
+  const quiz = active && !active.judged;
+  ctx.fillStyle = quiz ? CFG.theme.quizZone.dash : P.line;
+  stripes(CFG.layout.laneDashPeriod, y => {
+    for (let i = 1; i < LANES; i++)
+      ctx.fillRect(ROAD_L + LANE_W * i - 3, y, 6, CFG.layout.laneDashLength);
+  });
+
+  // while a question is live the tarmac turns blue and reads QUIZ ZONE —
+  // the road really is clear here, and it should look it
+  if (quiz) {
+    ctx.fillStyle = CFG.theme.quizZone.tint;
+    ctx.fillRect(ROAD_L, 0, ROAD_W, VH);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(ROAD_L, 0, ROAD_W, VH); ctx.clip();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(8, ROAD_W * 0.048)}px 'Press Start 2P', monospace`;
+    stripes(300, y => {
+      ctx.fillStyle = 'rgba(180,240,255,.16)';
+      ctx.fillText(CFG.ui.quizZoneLabel, ROAD_L + ROAD_W / 2, y + 150);
+    });
+    ctx.restore();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+}
+
+/* =============================================================
+   Cars, seen from directly above
+   ============================================================= */
+function drawCar(x, y, skin, isPlayer, tilt) {
+  const W = CAR_W, H = CAR_H;
+  if (y < -H || y > VH + H) return;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt || 0);
+
+  // drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
+  ctx.beginPath(); ctx.roundRect(-W/2 + 4, -H/2 + 6, W, H, W * 0.22); ctx.fill();
+
+  // wheels poking out at the sides
+  ctx.fillStyle = '#15151A';
+  const ww = W * 0.15, wh = H * 0.20;
+  [[-W/2 - ww*0.45, -H*0.32], [W/2 - ww*0.55, -H*0.32],
+   [-W/2 - ww*0.45,  H*0.12], [W/2 - ww*0.55,  H*0.12]].forEach(p => {
+    ctx.beginPath(); ctx.roundRect(p[0], p[1], ww, wh, ww*0.35); ctx.fill();
+  });
+
+  // body
+  ctx.fillStyle = skin.body;
+  ctx.beginPath(); ctx.roundRect(-W/2, -H/2, W, H, W * 0.22); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = '#15151A';
+  ctx.beginPath(); ctx.roundRect(-W/2, -H/2, W, H, W * 0.22); ctx.stroke();
+
+  // nose and tail shading
+  ctx.fillStyle = skin.roof;
+  ctx.beginPath(); ctx.roundRect(-W*0.40, -H*0.46, W*0.80, H*0.16, W*0.10); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(-W*0.40,  H*0.30, W*0.80, H*0.16, W*0.10); ctx.fill();
+
+  // cabin
+  ctx.fillStyle = skin.roof;
+  ctx.beginPath(); ctx.roundRect(-W*0.36, -H*0.14, W*0.72, H*0.30, W*0.12); ctx.fill();
+
+  // glass
+  ctx.fillStyle = '#2B3C55';
+  ctx.beginPath();
+  ctx.moveTo(-W*0.32, -H*0.16); ctx.lineTo(W*0.32, -H*0.16);
+  ctx.lineTo(W*0.24, -H*0.30);  ctx.lineTo(-W*0.24, -H*0.30);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-W*0.30, H*0.18); ctx.lineTo(W*0.30, H*0.18);
+  ctx.lineTo(W*0.23, H*0.30);  ctx.lineTo(-W*0.23, H*0.30);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.22)';
+  ctx.beginPath();
+  ctx.moveTo(-W*0.30, -H*0.18); ctx.lineTo(-W*0.06, -H*0.18);
+  ctx.lineTo(-W*0.16, -H*0.29); ctx.lineTo(-W*0.23, -H*0.29);
+  ctx.closePath(); ctx.fill();
+
+  // racing stripe
+  ctx.fillStyle = skin.trim;
+  ctx.fillRect(-W*0.05, -H*0.46, W*0.10, H*0.30);
+  ctx.fillRect(-W*0.05,  H*0.16, W*0.10, H*0.30);
+
+  // lights
+  ctx.fillStyle = '#FFF2B8';
+  ctx.beginPath(); ctx.roundRect(-W*0.40, -H*0.50, W*0.22, H*0.05, 2); ctx.fill();
+  ctx.beginPath(); ctx.roundRect( W*0.18, -H*0.50, W*0.22, H*0.05, 2); ctx.fill();
+  ctx.fillStyle = '#FF3B30';
+  ctx.beginPath(); ctx.roundRect(-W*0.40, H*0.45, W*0.22, H*0.05, 2); ctx.fill();
+  ctx.beginPath(); ctx.roundRect( W*0.18, H*0.45, W*0.22, H*0.05, 2); ctx.fill();
+
+  // mirrors
+  ctx.fillStyle = '#15151A';
+  ctx.fillRect(-W/2 - 4, -H*0.12, 4, H*0.06);
+  ctx.fillRect( W/2,     -H*0.12, 4, H*0.06);
+
+  ctx.restore();
+}
+
+function drawTraffic() {
+  for (const t of traffic) {
+    const y = yFor(t.z);
+    if (y < -CAR_H * 2 || y > VH + CAR_H * 2) continue;
+    t.blocked.forEach((lane, i) => {
+      drawCar(laneX(lane), y + i * 2, CAR_SKINS[(t.skin + i * 2) % CAR_SKINS.length], false, 0);
+    });
+  }
+}
+
+function drawPlayer() {
+  const tilt = (laneX(S.lane) - S.carX) * 0.0032;
+  ctx.save();
+  if (S.invuln > 0 && Math.floor(S.invuln * 12) % 2 === 0) ctx.globalAlpha = 0.4;
+  drawCar(S.carX, PLAYER_Y, PLAYER_SKIN, true, tilt);
+  ctx.restore();
+}
+
+/* =============================================================
+   Overhead sign banner
+   ============================================================= */
+function fitFont(text, maxW, start) {
+  let size = start;
+  ctx.font = `700 ${size}px 'Press Start 2P', monospace`;
+  while (ctx.measureText(text).width > maxW && size > 5) {
+    size -= 0.5;
+    ctx.font = `700 ${size}px 'Press Start 2P', monospace`;
+  }
+  return size;
+}
+
+function drawSign(g) {
+  const y = yFor(g.z);
+  const H = Math.max(58, VH * 0.16);
+  if (y < -H * 2 || y > VH + H) return;
+
+  const top = y - H;
+
+  // gantry legs reaching over the rails
+  ctx.fillStyle = '#4A5160';
+  ctx.fillRect(ROAD_L - RAIL_W - 8, top, RAIL_W + 8, H);
+  ctx.fillRect(ROAD_R, top, RAIL_W + 8, H);
+
+  // banner body
+  ctx.fillStyle = P.signBody;
+  ctx.fillRect(ROAD_L, top, ROAD_W, H);
+  ctx.fillStyle = P.signRim;
+  ctx.fillRect(ROAD_L, top, ROAD_W, 5);
+  ctx.fillRect(ROAD_L, y - 5, ROAD_W, 5);
+
+  // one panel per lane
+  for (let i = 0; i < 3; i++) {
+    const px = ROAD_L + LANE_W * i + 6, pw = LANE_W - 12;
+    const py = top + 10, ph = H - 20;
+    let face = '#2A3244', rim = '#5A6478', ink = '#FFFFFF';
+
+    if (g.judged) {
+      if (i === g.correctLane) { face = '#12602C'; rim = P.good; ink = '#CFFFDD'; }
+      else if (i === g.pickedLane) { face = '#6B1A16'; rim = P.bad; ink = '#FFD5D2'; }
+    } else if (i === S.lane) { face = '#0E4C63'; rim = P.pick; ink = '#DFFBFF'; }
+
+    ctx.fillStyle = face;
+    ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 5); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = rim;
+    ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 5); ctx.stroke();
+
+    const label = g.answers[i];
+    const size = fitFont(label, pw * 0.84, Math.min(18, ph * 0.34));
+    ctx.fillStyle = ink;
+    ctx.font = `700 ${size}px 'Press Start 2P', monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, px + pw / 2, py + ph / 2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+
+  // chequered judging line right under the banner
+  for (let x = ROAD_L; x < ROAD_R; x += 14) {
+    ctx.fillStyle = ((x / 14) | 0) % 2 ? '#FFFFFF' : '#15151A';
+    ctx.fillRect(x, y, 14, 7);
+  }
+}
+
+/* The question is put on the game screen itself, right above the lanes it
+   refers to, with the countdown beside it — so the student never has to
+   look away from the road to read it. */
+function fitVT(text, maxW, start) {
+  let size = start;
+  ctx.font = `${size}px 'VT323', monospace`;
+  while (ctx.measureText(text).width > maxW && size > 8) {
+    size -= 1; ctx.font = `${size}px 'VT323', monospace`;
+  }
+  return size;
+}
+
+function drawQuizBanner() {
+  if (!active || active.judged) return;
+  const W = ROAD_W + RAIL_W * 2, X = ROAD_L - RAIL_W;
+  const qh = Math.max(30, VH * 0.072);           // question strip
+  const ah = Math.max(28, VH * 0.068);           // answer strip
+  const H = qh + ah + 10;
+  const secs = Math.max(0, active.timeLeft);
+  const frac = Math.min(1, secs / QUESTION_SECONDS);
+
+  ctx.fillStyle = 'rgba(8,12,22,.88)';
+  ctx.fillRect(X, 0, W, H);
+  ctx.fillStyle = frac < 0.28 ? P.bad : P.signRim;
+  ctx.fillRect(X, H, W, 3);
+
+  // countdown clock on the right of the question strip
+  const clockW = Math.max(38, W * 0.16);
+  ctx.fillStyle = frac < 0.28 ? 'rgba(232,69,60,.9)' : 'rgba(32,199,232,.18)';
+  ctx.beginPath(); ctx.roundRect(X + W - clockW - 5, 5, clockW, qh - 4, 4); ctx.fill();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `700 ${Math.max(10, qh * 0.42)}px 'Press Start 2P', monospace`;
+  ctx.fillText(secs >= 1 ? String(Math.ceil(secs)) : secs.toFixed(1),
+               X + W - clockW / 2 - 5, 5 + (qh - 4) / 2);
+
+  // the question itself
+  const qw = W - clockW - 22;
+  const qsize = fitVT(active.q.q, qw, Math.max(14, qh * 0.78));
+  ctx.fillStyle = '#DFFBFF';
+  ctx.font = `${qsize}px 'VT323', monospace`;
+  ctx.textAlign = 'left';
+  ctx.fillText(active.q.q, X + 9, 5 + (qh - 4) / 2);
+
+  // subject flag
+  ctx.font = `700 ${Math.max(6, qh * 0.20)}px 'Press Start 2P', monospace`;
+  ctx.fillStyle = 'rgba(255,45,149,.9)';
+  ctx.fillText(active.q.s, X + 9, qh + 2);
+
+  // draining time bar across the whole strip
+  ctx.fillStyle = 'rgba(255,255,255,.10)';
+  ctx.fillRect(X, qh + 6, W, 3);
+  ctx.fillStyle = frac < 0.28 ? P.bad : frac < 0.6 ? P.signRim : P.good;
+  ctx.fillRect(X, qh + 6, W * frac, 3);
+
+  // answers sitting directly over their own lanes
+  for (let i = 0; i < 3; i++) {
+    const px = ROAD_L + LANE_W * i + 4, pw = LANE_W - 8;
+    const py = qh + 12, ph = ah - 6;
+    const on = i === S.lane;
+    ctx.fillStyle = on ? 'rgba(32,199,232,.30)' : 'rgba(255,255,255,.06)';
+    ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 4); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = on ? P.pick : 'rgba(255,255,255,.22)';
+    ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 4); ctx.stroke();
+
+    const label = active.answers[i];
+    const size = fitFont(label, pw * 0.86, Math.min(13, ph * 0.40));
+    ctx.fillStyle = on ? '#FFFFFF' : '#AEB6C8';
+    ctx.font = `700 ${size}px 'Press Start 2P', monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, px + pw / 2, py + ph / 2);
+
+    // pointer down into the lane
+    ctx.fillStyle = on ? P.pick : 'rgba(255,255,255,.18)';
+    ctx.beginPath();
+    ctx.moveTo(px + pw / 2 - 6, py + ph);
+    ctx.lineTo(px + pw / 2 + 6, py + ph);
+    ctx.lineTo(px + pw / 2, py + ph + 7);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+/* =============================================================
+   Particles
+   ============================================================= */
+function spawnDust() {
+  if (!S.running) return;
+  for (let i = 0; i < 2; i++) {
+    const side = i === 0 ? -1 : 1;
+    particles.push({
+      x: S.carX + side * CAR_W * 0.42, y: PLAYER_Y + CAR_H * 0.42,
+      vx: side * (0.2 + Math.random() * 0.5), vy: 2.2 + Math.random() * 2.4,
+      r: 2 + Math.random() * 4, life: 1, decay: 0.06 + Math.random() * 0.04,
+      color: '210,210,216'
+    });
+  }
+}
+
+function burst(x, y, n, color, power) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = (0.4 + Math.random()) * power;
+    particles.push({
+      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      r: 3 + Math.random() * 6, life: 1, decay: 0.018 + Math.random() * 0.016, color
+    });
+  }
+}
+
+function stepParticles(dt) {
+  for (const p of particles) {
+    p.x += p.vx * dt; p.y += p.vy * dt * (1 + S.speed * 0.18);
+    p.life -= p.decay * dt;
+  }
+  particles = particles.filter(p => p.life > 0 && p.y < VH + 40);
+  if (particles.length > 200) particles.splice(0, particles.length - 200);
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life) * 0.75;
+    ctx.fillStyle = `rgb(${p.color})`;
+    ctx.fillRect(p.x - p.r / 2, p.y - p.r / 2, p.r, p.r);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFloaters(dt) {
+  for (const f of floaters) {
+    f.y -= 1.1 * dt; f.life -= 0.013 * dt;
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#15151A';
+    ctx.font = `700 ${Math.max(10, VH * 0.028)}px 'Press Start 2P', monospace`;
+    ctx.fillText(f.text, f.x + 2, f.y + 2);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.textAlign = 'left';
+  }
+  ctx.globalAlpha = 1;
+  floaters = floaters.filter(f => f.life > 0);
+}
+
+/* =============================================================
+   Frame
+   ============================================================= */
+function render(dt) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, VW, VH);
+
+  if (S.shake > 0.2) {
+    ctx.translate((Math.random() - 0.5) * S.shake, (Math.random() - 0.5) * S.shake);
+    S.shake *= 0.90;
+  }
+
+  drawTerrain();
+  drawRoad();
+  drawRails();
+  gantries.filter(g => g.revealed).forEach(drawSign);
+  drawTraffic();
+  drawPickups(performance.now());
+  drawParticles();
+  drawPlayer();
+  drawQuizBanner();
+  drawFloaters(dt);
+
+  if (S.flash > 0.01) {
+    ctx.fillStyle = `rgba(${S.flashColor},${S.flash})`;
+    ctx.fillRect(-40, -40, VW + 80, VH + 80);
+    S.flash *= 0.88;
+  }
+}
+
+function update(dt) {
+  // the car slides between lane centres
+  const target = laneX(S.lane);
+  S.carX += (target - S.carX) * Math.min(1, 0.18 * dt);
+  if (S.invuln > 0) S.invuln -= dt / 60;
+
+  if (S.shownScore !== S.score) {
+    const diff = S.score - S.shownScore;
+    S.shownScore += Math.sign(diff) * Math.max(1, Math.abs(diff) * 0.14);
+    if (Math.abs(S.score - S.shownScore) < 1) S.shownScore = S.score;
+    document.getElementById('m-score').textContent = pad(S.shownScore, 6);
+    if (S.score > S.hi) { S.hi = S.score; document.getElementById('m-hi').textContent = pad(S.hi, 6); }
+  }
+
+  stepParticles(dt);
+  if (!S.running) return;
+
+  /* Question phase: run the clock down, and shape the speed so the banner
+     arrives exactly as the clock hits zero. Blending in over the first
+     second gives a smooth brake instead of a sudden drop. */
+  if (active && !active.judged) {
+    active.timeLeft -= dt / 60;
+    const remT = Math.max(0.08, active.timeLeft);
+    const want = Math.max(MIN_SPEED, active.d / (remT * 60));
+    const blend = Math.min(1, (QUESTION_SECONDS - active.timeLeft) / CFG.speed.brakeEaseSeconds);
+    const target = S.cruise * (1 - blend) + want * blend;
+    S.speed += (target - S.speed) * Math.min(1, CFG.speed.brakeRate * dt);
+  } else {
+    S.speed += (S.cruise - S.speed) * Math.min(1, CFG.speed.recoverRate * dt);
+  }
+  updateHud();
+
+  S.scroll += S.speed * dt;
+  spawnDust();
+  scheduleSigns();
+  spawnTraffic();
+  stepTraffic(dt);
+
+  for (const g of gantries) if (!g.revealed && g.d <= g.lead) { g.revealed = true; showQuestion(g); }
+  for (const g of gantries) if (g.revealed && !g.judged && (g.timeLeft <= 0 || g.d <= 0)) judge(g);
+
+  if (active && !active.judged) stepPickups();
+
+  if (S.invuln <= 0) {
+    for (const t of traffic) {
+      const dy = Math.abs(yFor(t.z) - PLAYER_Y);
+      if (dy < CAR_H * 0.86 && t.blocked.includes(S.lane)) { hitTraffic(); break; }
+    }
+  }
+
+  gantries = gantries.filter(g => g.d > -VH - 200);
+  pickups  = pickups.filter(p => yFor(p.z) < VH + 120);
+  traffic  = traffic.filter(t => yFor(t.z) < VH + 300);
+  updateTimer();
+}
+
+/* =============================================================
+   Side monitor
+   ============================================================= */
+const qbody = document.getElementById('qbody');
+const answersEl = document.getElementById('answers');
+const barEl = document.getElementById('bar');
+
+for (let i = 0; i < SEGMENTS; i++) {
+  const d = document.createElement('div');
+  d.className = 'seg';
+  barEl.appendChild(d);
+}
+
+function showQuestion(g) {
+  active = g;
+  S.asked++;
+  g.shownAt = performance.now();
+  g.laneAtStart = S.lane;
+  g.moves = [];
+  spawnPickups(g);
+  document.getElementById('qno').textContent = 'QUESTION ' + pad(S.asked, 2);
+  document.getElementById('subject').textContent = g.q.s;
+  qbody.innerHTML = `<div id="qtext">${g.q.q}</div>`;
+  document.getElementById('qhint').textContent = CFG.ui.questionHint;
+  renderAnswers(g);
+  beep(880, 0.05, 'square'); setTimeout(() => beep(1180, 0.05, 'square'), 70);
+  hintButtons(true);
+}
+
+function renderAnswers(g) {
+  answersEl.innerHTML = g.answers.map((a, i) => {
+    let cls = '';
+    if (g.judged) {
+      if (i === g.correctLane) cls = 'right';
+      else if (i === g.pickedLane) cls = 'miss';
+    } else if (i === S.lane) cls = 'sel';
+    return `<div class="ans ${cls}"><span class="key">${['L','M','R'][i]}</span><span class="txt">${a}</span></div>`;
+  }).join('');
+}
+
+function clearQuestion() {
+  active = null;
+  document.getElementById('qno').textContent = 'SYSTEM READY';
+  document.getElementById('subject').textContent = '';
+  qbody.innerHTML = `<div id="idle">${CFG.ui.idleTop}<br><b>${CFG.ui.idleBottom}</b></div>`;
+  document.getElementById('qhint').textContent = CFG.ui.idleHint;
+  answersEl.innerHTML = '';
+  setBar(1, '—');
+  hintButtons(false);
+}
+
+function setBar(frac, label) {
+  const lit = Math.ceil(frac * SEGMENTS);
+  [...barEl.children].forEach((seg, i) => {
+    seg.className = 'seg' + (i < lit ? ' on' : '') +
+      (frac < 0.34 ? ' low' : frac < 0.62 ? ' mid' : '');
+  });
+  document.getElementById('tnum').textContent = label;
+}
+
+function updateTimer() {
+  if (!active || active.judged) return;
+  const secs = Math.max(0, active.timeLeft);
+  setBar(Math.min(1, secs / QUESTION_SECONDS), secs >= 1 ? String(Math.ceil(secs)) : secs.toFixed(1));
+}
+
+function hintButtons(on) {
+  document.getElementById('btn-left').classList.toggle('live', on);
+  document.getElementById('btn-right').classList.toggle('live', on);
+}
+
+/* =============================================================
+   Collectables — only while a question is up
+   ============================================================= */
+function spawnPickups(g) {
+  const K = CFG.collectables;
+  g.pickupsSpawned = 0; g.pickupsTaken = 0; g.heartsTaken = 0; g.bonusTaken = 0;
+  if (!K.enabled) return;
+
+  const n = K.minPerQuestion +
+            Math.floor(Math.random() * (K.maxPerQuestion - K.minPerQuestion + 1));
+  const placed = [];
+
+  for (let i = 0; i < n; i++) {
+    let z = 0, lane = 0, ok = false;
+    for (let tries = 0; tries < 12 && !ok; tries++) {
+      // f is how far through the run-up the pickup sits
+      const f = K.spawnWindowStart + Math.random() * (K.spawnWindowEnd - K.spawnWindowStart);
+      z = g.z - g.lead * (1 - f);
+      lane = Math.floor(Math.random() * LANES);
+      ok = placed.every(q => Math.abs(q.z - z) > CAR_H * K.minSeparationCars || q.lane !== lane)
+        && !traffic.some(t => Math.abs(t.z - z) < CAR_H * 1.6 && t.blocked.includes(lane));
+    }
+    if (!ok) continue;
+
+    // a heart is pointless on full lives, so it becomes points instead
+    const wantHeart = Math.random() < K.heartChance && S.lives < K.maxLives;
+    const p = { z, lane, type: wantHeart ? 'heart' : 'points', taken: false,
+                phase: Math.random() * Math.PI * 2, sign: g };
+    placed.push(p); pickups.push(p);
+    g.pickupsSpawned++;
+  }
+}
+
+function collectPickup(p) {
+  const K = CFG.collectables;
+  p.taken = true;
+  p.sign.pickupsTaken++;
+
+  if (p.type === 'heart' && S.lives < K.maxLives) {
+    S.lives++;
+    p.sign.heartsTaken++;
+    S.hearts = (S.hearts || 0) + 1;
+    renderLives();
+    floaters.push({ text: CFG.ui.collectHeart, x: S.carX, y: PLAYER_Y - CAR_H, life: 1,
+                    color: CFG.theme.collectables.heart });
+    toast(CFG.ui.collectHeart, 'good');
+    burst(S.carX, PLAYER_Y - CAR_H * 0.3, 16, '255,77,141', 3.2);
+    beep(560, 0.07, 'square'); setTimeout(() => beep(840, 0.09, 'square'), 80);
+  } else {
+    S.score += K.pointsValue;
+    S.bonus = (S.bonus || 0) + K.pointsValue;
+    p.sign.bonusTaken += K.pointsValue;
+    if (p.type === 'heart') toast(CFG.ui.collectHeartFull, 'info');
+    floaters.push({ text: CFG.ui.collectPoints.replace('{n}', K.pointsValue),
+                    x: S.carX, y: PLAYER_Y - CAR_H, life: 1,
+                    color: CFG.theme.collectables.coin });
+    burst(S.carX, PLAYER_Y - CAR_H * 0.3, 14, '255,197,61', 3);
+    beep(700, 0.05, 'square'); setTimeout(() => beep(1040, 0.07, 'square'), 60);
+  }
+}
+
+function stepPickups() {
+  for (const p of pickups) {
+    if (p.taken) continue;
+    if (p.lane === S.lane && Math.abs(yFor(p.z) - PLAYER_Y) < CAR_H * 0.62) collectPickup(p);
+  }
+  pickups = pickups.filter(p => !p.taken && yFor(p.z) < VH + 120);
+}
+
+function drawPickups(t) {
+  const K = CFG.collectables, C = CFG.theme.collectables;
+  const R = CAR_W * K.sizeCars * 0.5;
+
+  for (const p of pickups) {
+    const y = yFor(p.z);
+    if (y < -60 || y > VH + 60) continue;
+    const x = laneX(p.lane);
+    const bob = Math.sin(t * 0.005 + p.phase) * R * 0.18;
+    const pulse = 1 + Math.sin(t * 0.008 + p.phase) * 0.07;
+
+    ctx.save();
+    ctx.translate(x, y + bob);
+
+    // glow pad on the tarmac
+    const g = ctx.createRadialGradient(0, 0, 1, 0, 0, R * 2.4);
+    g.addColorStop(0, (p.type === 'heart' ? 'rgba(255,77,141,.45)' : 'rgba(255,197,61,.45)'));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, R * 2.4, 0, Math.PI * 2); ctx.fill();
+
+    ctx.scale(pulse, pulse);
+    ctx.lineWidth = Math.max(2, R * 0.16);
+    ctx.strokeStyle = C.outline;
+    ctx.lineJoin = 'round';
+
+    if (p.type === 'heart') {
+      const hp = () => {
+        ctx.beginPath();
+        ctx.moveTo(0, R * 0.92);
+        ctx.bezierCurveTo(-R * 1.5, -R * 0.20, -R * 0.62, -R * 1.25, 0, -R * 0.42);
+        ctx.bezierCurveTo(R * 0.62, -R * 1.25, R * 1.5, -R * 0.20, 0, R * 0.92);
+        ctx.closePath();
+      };
+      hp(); ctx.fillStyle = C.heartDark; ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.scale(0.76, 0.76);
+      hp(); ctx.fillStyle = C.heart; ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = C.shine;
+      ctx.beginPath();
+      ctx.ellipse(-R * 0.38, -R * 0.36, R * 0.20, R * 0.13, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // five-point bonus star on a coin
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2);
+      ctx.fillStyle = C.coinDark; ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + i * Math.PI / 5;
+        const rr = i % 2 ? R * 0.34 : R * 0.78;
+        i ? ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr)
+          : ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fillStyle = C.coin; ctx.fill();
+      ctx.fillStyle = C.shine;
+      ctx.beginPath(); ctx.arc(-R * 0.30, -R * 0.32, R * 0.16, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/* =============================================================
+   Outcomes
+   ============================================================= */
+function judge(g) {
+  g.judged = true;
+  g.pickedLane = S.lane;
+  recordAnswer(g);
+  const right = S.lane === g.correctLane;
+  g.result = right ? 'right' : 'wrong';
+
+  if (right) {
+    S.correct++; S.streak++; S.best = Math.max(S.best, S.streak);
+    const bonus = CFG.scoring.streakBonus * Math.max(0, S.streak - 1);
+    const points = CFG.scoring.correct + bonus;
+    S.score += points;
+    S.flashColor = '255,255,255'; S.flash = 0.22;
+    burst(S.carX, PLAYER_Y - CAR_H * 0.4, 18, '61,211,95', 3.6);
+    floaters.push({ text: '+' + points, x: S.carX, y: PLAYER_Y - CAR_H, life: 1, color: '#7CFF9E' });
+    toast(S.streak >= CFG.scoring.comboToastAt
+      ? CFG.ui.combo.replace('{n}', S.streak) : CFG.ui.correct, 'good');
+    beep(660, 0.07, 'square'); setTimeout(() => beep(990, 0.1, 'square'), 80);
+  } else {
+    S.streak = 0;
+    loseLife();
+    S.flashColor = '232,69,60'; S.flash = 0.36;
+    S.shake = 20;
+    burst(S.carX, PLAYER_Y - CAR_H * 0.2, 22, '232,69,60', 4);
+    toast(CFG.ui.wrong.replace('{answer}', g.q.a), 'bad');
+    beep(150, 0.26, 'sawtooth');
+  }
+
+  S.answered++;
+  renderAnswers(g);
+  hintButtons(false);
+  setBar(0, '0');
+  setTimeout(() => { if (active === g) clearQuestion(); }, 1700);
+  if (S.answered % PER_LEVEL === 0 && S.lives > 0) levelUp();
+}
+
+function hitTraffic() {
+  recordCrash();
+  S.invuln = CFG.lives.invulnerableSeconds; S.streak = 0; S.shake = 26;
+  S.flashColor = '255,255,255'; S.flash = 0.45;
+  burst(S.carX, PLAYER_Y - CAR_H * 0.3, 28, '245,197,24', 4.8);
+  toast(CFG.ui.crash, 'bad');
+  beep(120, 0.32, 'sawtooth');
+  loseLife();
+}
+
+function loseLife() {
+  S.lives--;
+  renderLives();
+  if (S.lives <= 0) gameOver();
+}
+
+function levelUp() {
+  S.level++;
+  S.cruise = Math.min(BASE_SPEED + (S.level - 1) * CFG.speed.perLevel, CFG.speed.max);
+  questionPool = [];
+  updateHud();
+  toast(CFG.ui.stage.replace('{n}', pad(S.level, 2)), 'info');
+  beep(700, 0.08, 'square'); setTimeout(() => beep(1050, 0.12, 'square'), 100);
+}
+
+function gameOver() {
+  S.running = false; S.over = true;
+  summarise(); saveLocal(); postResults();
+  const acc = S.asked ? Math.round(S.correct / S.asked * 100) : 0;
+  document.getElementById('o-msg').innerHTML =
+    `${S.correct}/${S.asked} CORRECT &nbsp; ${acc}% &nbsp; BEST RUN ${S.best}`;
+  document.getElementById('o-score').textContent = pad(S.score, 6);
+  document.getElementById('over').classList.add('show');
+}
+
+function toast(text, kind) {
+  const el = document.getElementById('toast');
+  el.textContent = text;
+  el.className = 'show ' + kind;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = kind, 1200);
+}
+
+/* =============================================================
+   Cabinet furniture
+   ============================================================= */
+function renderLives() {
+  const el = document.getElementById('hearts');
+  el.innerHTML = '';
+  const slots = Math.max(START_LIVES, CFG.collectables.maxLives, S.lives);
+  for (let i = 0; i < slots; i++) {
+    const d = document.createElement('div');
+    d.className = 'life' + (i < S.lives ? '' : ' gone');
+    el.appendChild(d);
+  }
+}
+
+function updateHud() {
+  document.getElementById('m-level').textContent = pad(S.level, 2);
+  document.getElementById('m-hi').textContent = pad(S.hi, 6);
+  const sp = document.getElementById('m-speed');
+  if (sp) sp.textContent = pad(S.speed * CFG.speed.kmhPerUnit, 3);
+}
+
+function updateLeds() {
+  document.querySelectorAll('.led').forEach(p => {
+    const lane = +p.dataset.lane;
+    const near = traffic.some(t => {
+      const y = yFor(t.z);
+      return y > -CAR_H && y < PLAYER_Y + CAR_H && t.blocked.includes(lane);
+    });
+    p.className = 'led' + (lane === S.lane ? ' on' : near ? ' blocked' : '');
+  });
+  document.getElementById('btn-left').disabled = S.lane === 0 || !S.running;
+  document.getElementById('btn-right').disabled = S.lane === 2 || !S.running;
+}
+
+function move(dir) {
+  if (!S.running) return;
+  const next = Math.max(0, Math.min(2, S.lane + dir));
+  if (next === S.lane) return;
+  S.lane = next;
+  if (active && !active.judged) {
+    active.moves.push({ toLane: next, atMs: Math.round(performance.now() - active.shownAt) });
+  }
+  beep(420 + dir * 60, 0.04, 'square');
+  if (active && !active.judged) renderAnswers(active);
+  updateLeds();
+}
+
+function press(id) {
+  const b = document.getElementById(id);
+  b.classList.add('press');
+  setTimeout(() => b.classList.remove('press'), 110);
+}
+
+['btn-left', 'btn-right'].forEach((id, i) => {
+  document.getElementById(id).addEventListener('pointerdown', e => {
+    e.preventDefault(); move(i === 0 ? -1 : 1); press(id);
+  });
+});
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { move(-1); press('btn-left'); }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { move(1); press('btn-right'); }
+  if ((e.key === 'Enter' || e.key === ' ') && S.over) restart();
+});
+
+document.getElementById('o-btn').addEventListener('click', restart);
+
+function restart() {
+  if (S.over || !session) { document.getElementById('attract').classList.add('hide'); newSession(); }
+  Object.assign(S, {
+    level:1, score:0, shownScore:0, lives:START_LIVES,
+    lane:1, scroll:0, speed:BASE_SPEED, cruise:BASE_SPEED, lives:START_LIVES,
+    running:true, over:false,
+    answered:0, correct:0, asked:0, streak:0, best:0,
+    invuln:0, shake:0, flash:0
+  });
+  S.carX = laneX(1);
+  traffic = []; gantries = []; particles = []; floaters = []; pickups = [];
+  S.hearts = 0; S.bonus = 0;
+  lastTrafficZ = 600; questionPool = []; active = null; prevFreeLane = 1;
+  S.lives = START_LIVES;
+  document.getElementById('over').classList.remove('show');
+  document.getElementById('m-score').textContent = pad(0, 6);
+  updateHud(); renderLives(); clearQuestion(); updateLeds();
+}
+
+/* =============================================================
+   Results — written to results.json
+   ============================================================= */
+let session = null;
+
+function newSession() {
+  const now = new Date();
+  session = {
+    schemaVersion: '1.0',
+    session: {
+      id: 's-' + now.toISOString().replace(/[-:T]/g, '').slice(0, 15) +
+          '-' + Math.random().toString(16).slice(2, 6),
+      gameId: CFG.game.id,
+      student: { name: S.student || '', id: '' },
+      startedAt: now.toISOString(),
+      endedAt: null,
+      durationMs: 0,
+      settings: {
+        questionSeconds: QUESTION_SECONDS,
+        lanes: LANES,
+        startLives: START_LIVES,
+        baseSpeed: BASE_SPEED
+      },
+      userAgent: navigator.userAgent
+    },
+    summary: {},
+    answers: [],
+    crashes: []
+  };
+}
+
+function recordAnswer(g) {
+  if (!session) return;
+  const now = performance.now();
+  const moves = g.moves || [];
+  const lastMove = moves.length ? moves[moves.length - 1] : null;
+  const points = g.result === 'right'
+    ? CFG.scoring.correct + CFG.scoring.streakBonus * Math.max(0, S.streak - 1) : 0;
+
+  session.answers.push({
+    order: session.answers.length + 1,
+    questionId: g.q.id || null,
+    subject: g.q.s,
+    stage: S.level,
+    prompt: g.q.q,
+    lanes: g.answers.map((a, i) => ({ lane: i, label: ['L', 'M', 'R'][i] || String(i), answer: a })),
+    correctAnswer: g.q.a,
+    correctLane: g.correctLane,
+    startedInLane: g.laneAtStart,
+    chosenLane: g.pickedLane,
+    chosenAnswer: g.answers[g.pickedLane],
+    correct: g.result === 'right',
+    laneChanges: moves.length,
+    moves,
+    timeToFirstMoveMs: moves.length ? moves[0].atMs : null,
+    timeToFinalLaneMs: lastMove ? lastMove.atMs : null,
+    secondsLeftAtFinalLane: lastMove
+      ? +(QUESTION_SECONDS - lastMove.atMs / 1000).toFixed(2) : null,
+    settledEarly: lastMove ? lastMove.atMs / 1000 < QUESTION_SECONDS * 0.6 : (moves.length === 0),
+    pickups: {
+      spawned: g.pickupsSpawned || 0,
+      collected: g.pickupsTaken || 0,
+      hearts: g.heartsTaken || 0,
+      bonusPoints: g.bonusTaken || 0
+    },
+    windowMs: Math.round(now - g.shownAt),
+    score: points,
+    shownAt: new Date(Date.now() - (now - g.shownAt)).toISOString()
+  });
+  saveLocal();
+}
+
+function recordCrash() {
+  if (!session) return;
+  session.crashes.push({
+    stage: S.level,
+    lane: S.lane,
+    duringQuestion: !!(active && !active.judged),
+    questionId: active && !active.judged ? (active.q.id || null) : null,
+    at: new Date().toISOString()
+  });
+  saveLocal();
+}
+
+function summarise() {
+  if (!session) return null;
+  const A = session.answers;
+  const firsts = A.map(a => a.timeToFirstMoveMs).filter(n => n != null);
+  const finals = A.map(a => a.timeToFinalLaneMs).filter(n => n != null);
+  const bySubject = {};
+  A.forEach(a => {
+    const b = bySubject[a.subject] || (bySubject[a.subject] = { asked: 0, correct: 0 });
+    b.asked++; if (a.correct) b.correct++;
+  });
+  Object.values(bySubject).forEach(b => b.accuracyPct = Math.round(b.correct / b.asked * 100));
+
+  session.session.endedAt = new Date().toISOString();
+  session.session.durationMs =
+    new Date(session.session.endedAt) - new Date(session.session.startedAt);
+  session.session.student.name = S.student || '';
+  session.summary = {
+    asked: A.length,
+    correct: A.filter(a => a.correct).length,
+    incorrect: A.filter(a => !a.correct).length,
+    accuracyPct: A.length ? Math.round(A.filter(a => a.correct).length / A.length * 100) : 0,
+    score: S.score,
+    stageReached: S.level,
+    bestStreak: S.best,
+    crashes: session.crashes.length,
+    livesLost: START_LIVES - Math.max(0, S.lives),
+    averageTimeToFirstMoveMs: firsts.length ? Math.round(firsts.reduce((x, y) => x + y, 0) / firsts.length) : null,
+    averageTimeToFinalLaneMs: finals.length ? Math.round(finals.reduce((x, y) => x + y, 0) / finals.length) : null,
+    answeredWithoutMoving: A.filter(a => a.laneChanges === 0).length,
+    settledEarly: A.filter(a => a.settledEarly).length,
+    pickupsOffered: A.reduce((n, a) => n + (a.pickups ? a.pickups.spawned : 0), 0),
+    pickupsCollected: A.reduce((n, a) => n + (a.pickups ? a.pickups.collected : 0), 0),
+    heartsGained: A.reduce((n, a) => n + (a.pickups ? a.pickups.hearts : 0), 0),
+    bonusPoints: A.reduce((n, a) => n + (a.pickups ? a.pickups.bonusPoints : 0), 0),
+    bySubject
+  };
+  return session;
+}
+
+function saveLocal() {
+  if (!CFG.results.autoSaveLocalStorage) return;
+  try { localStorage.setItem(CFG.results.storageKey, JSON.stringify(summarise())); } catch (e) {}
+}
+
+function downloadResults() {
+  const data = JSON.stringify(summarise(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = CFG.results.downloadFileName || 'results.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function postResults() {
+  if (!CFG.results.endpoint) return;
+  try {
+    await fetch(CFG.results.endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(summarise())
+    });
+  } catch (e) {}
+}
+
+/* ---------- audio ---------- */
+let actx = null;
+function beep(freq, dur, type) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'square'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.05, actx.currentTime + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur + 0.02);
+  } catch (e) {}
+}
+
+/* ---------- loop ---------- */
+let last = performance.now(), ledTick = 0;
+function loop(now) {
+  const dt = Math.min((now - last) / 16.667, 3);
+  last = now;
+  update(dt);
+  render(dt);
+  if ((ledTick += dt) > 8) { ledTick = 0; updateLeds(); }
+  requestAnimationFrame(loop);
+}
+
+/* =============================================================
+   Boot: read the JSON, then wait on the attract screen
+   ============================================================= */
+async function fetchJSON(path) {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+  return res.json();
+}
+
+async function boot() {
+  const configPath = document.body.dataset.config || 'game.config.json';
+  try {
+    const cfg = await fetchJSON(configPath);
+    const files = Array.isArray(cfg.game.questionsFile)
+      ? cfg.game.questionsFile : [cfg.game.questionsFile];
+    const banks = await Promise.all(files.map(fetchJSON));
+    start(cfg, banks);
+  } catch (err) {
+    showLoader(configPath, err);
+  }
+}
+
+function start(cfg, banks) {
+  applyConfig(cfg);
+  applyBank(banks);
+  document.getElementById('loader').classList.remove('show');
+
+  document.getElementById('a-title').textContent = cfg.ui.startTitle;
+  document.getElementById('a-blurb').textContent = cfg.ui.startBlurb;
+  document.getElementById('a-nametag').textContent = cfg.ui.namePrompt;
+  document.getElementById('a-btn').textContent = cfg.ui.startButton;
+  document.getElementById('o-btn').textContent = cfg.ui.startButton;
+  document.getElementById('o-save').textContent = cfg.ui.saveButton;
+  document.getElementById('a-namewrap').style.display =
+    cfg.results.collectStudentName ? 'block' : 'none';
+
+  layout();
+  S.carX = laneX(1);
+  new ResizeObserver(() => { layout(); S.carX = laneX(S.lane); })
+    .observe(document.getElementById('screen-main'));
+
+  renderLives(); updateHud(); clearQuestion(); updateLeds();
+  setTimeout(() => { const b = document.getElementById('boot'); if (b) b.remove(); }, 1200);
+  requestAnimationFrame(loop);
+}
+
+function beginRun() {
+  const nameEl = document.getElementById('a-name');
+  S.student = nameEl ? nameEl.value.trim() : '';
+  document.getElementById('attract').classList.add('hide');
+  newSession();
+  restart();
+}
+
+document.getElementById('a-btn').addEventListener('click', beginRun);
+document.getElementById('a-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') beginRun();
+});
+document.getElementById('o-save').addEventListener('click', downloadResults);
+
+/* ---------- file picker fallback ---------- */
+function showLoader(configPath, err) {
+  const picked = { config: null, banks: [], names: { config: '', banks: [] } };
+  const L = document.getElementById('loader');
+  L.classList.add('show');
+  document.getElementById('l-note').textContent = err.message;
+  const errEl = document.getElementById('l-err');
+  const fail = m => { errEl.textContent = m; errEl.classList.add('show'); };
+
+  const paint = () => {
+    document.getElementById('l-slot-config').classList.toggle('done', !!picked.config);
+    document.getElementById('l-slot-bank').classList.toggle('done', picked.banks.length > 0);
+    document.getElementById('l-sub-config').textContent = picked.config
+      ? picked.names.config + ' — ready' : configPath + ' — not loaded';
+    const n = picked.banks.reduce((s, b) =>
+      s + Object.values(b.sets).reduce((x, l) => x + l.length, 0), 0);
+    document.getElementById('l-sub-bank').textContent = picked.banks.length
+      ? picked.names.banks.join(', ') + ' — ' + n + ' questions' : 'questions.json — not loaded';
+    if (picked.config && picked.banks.length) setTimeout(() => start(picked.config, picked.banks), 220);
+  };
+
+  const ingest = async list => {
+    const files = [...list].filter(f => /\.json$/i.test(f.name));
+    if (!files.length) return fail('No .json files in that selection.');
+    const skipped = [];
+    for (const f of files) {
+      let d;
+      try { d = JSON.parse(await f.text()); }
+      catch (e) { fail(f.name + ' is not valid JSON — ' + e.message); continue; }
+      if (d.timing && d.theme) { picked.config = d; picked.names.config = f.name; }
+      else if (d.sets) { picked.banks.push(d); picked.names.banks.push(f.name); }
+      else if (d.answers || d.summary) skipped.push(f.name + ' (that is a results file)');
+      else skipped.push(f.name + ' (not a config or a question bank)');
+    }
+    if (skipped.length) fail('Ignored: ' + skipped.join('; ')); else errEl.classList.remove('show');
+    paint();
+  };
+
+  ['l-in-config', 'l-in-bank', 'l-in-dir'].forEach(id =>
+    document.getElementById(id).addEventListener('change', e => ingest(e.target.files)));
+  const drop = document.getElementById('l-drop');
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+    e.preventDefault(); drop.classList.add('over');
+  }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+    e.preventDefault(); drop.classList.remove('over');
+  }));
+  drop.addEventListener('drop', e => ingest(e.dataTransfer.files));
+}
+
+boot();
+
+</script>
+</body>
+</html>

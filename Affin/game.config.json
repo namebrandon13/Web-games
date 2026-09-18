@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "2.0",
+  "game": {
+    "id": "affix-tree",
+    "title": "Affix Tree",
+    "questionsFile": "questions.json",
+    "note": "questionsFile may be a single filename or an array of filenames. All files are merged by mode."
+  },
+  "modes": [
+    {
+      "id": "affix",
+      "label": "Prefix & Suffix",
+      "tagline": "Build the word",
+      "tree": "split",
+      "answer": "affix",
+      "clueLabel": "Meaning",
+      "clueTemplate": "{definition}",
+      "subField": null,
+      "trunkShows": "root"
+    },
+    {
+      "id": "synonyms",
+      "label": "Synonyms",
+      "tagline": "Pick the matching word",
+      "tree": "canopy",
+      "answer": "single",
+      "clueLabel": "Same meaning",
+      "clueTemplate": "Which word means the same as “{word}”?",
+      "subField": "definition",
+      "trunkShows": "blank"
+    },
+    {
+      "id": "antonyms",
+      "label": "Antonyms",
+      "tagline": "Pick the opposite",
+      "tree": "canopy",
+      "answer": "single",
+      "clueLabel": "Opposite meaning",
+      "clueTemplate": "Which word means the opposite of “{word}”?",
+      "subField": "definition",
+      "trunkShows": "blank"
+    }
+  ],
+  "rules": {
+    "maxAttemptsPerQuestion": 3,
+    "revealAnswerWhenAttemptsRunOut": true,
+    "shuffleQuestions": false,
+    "shuffleOptions": false,
+    "questionsPerRound": 0
+  },
+  "scoring": {
+    "correctFirstTry": 100,
+    "correctAfterRetry": 60,
+    "wrongAttemptPenalty": 0,
+    "unsolved": 0
+  },
+  "feedback": {
+    "needChoice": "Pick a word from the tree to continue.",
+    "needPrefix": "Choose a prefix from the left before checking.",
+    "needSuffix": "Choose a suffix from the right before checking.",
+    "needBoth": "This word needs both a prefix and a suffix.",
+    "correctAffix": "Perfect — {target}.",
+    "correctSingle": "Correct — {answer}.",
+    "incorrect": "Not quite. Try again.",
+    "incorrectAffix": "That doesn't build a real word. Try another piece.",
+    "lastAttempt": "One attempt left — read the meaning again carefully.",
+    "outOfAttemptsAffix": "Out of attempts. The word was {target}.",
+    "outOfAttemptsSingle": "Out of attempts. The answer was {answer}.",
+    "roundComplete": "Round complete."
+  },
+  "results": {
+    "collectStudentName": true,
+    "autoSaveLocalStorage": true,
+    "storageKey": "affix-tree-results",
+    "downloadFileName": "results.json",
+    "endpoint": ""
+  },
+  "theme": {
+    "paper": "#FDFAF4",
+    "page": "#F6F1E7",
+    "ink": "#2A2620",
+    "muted": "#8A8073",
+    "bark": "#7C5B3A",
+    "barkDark": "#5C4128",
+    "barkLight": "#94704A",
+    "green": "#3F6B2B",
+    "greenDeep": "#2B4A1C",
+    "greenSoft": "#DCEBD2",
+    "coral": "#C9542F",
+    "coralSoft": "#F8DFD5",
+    "wrong": "#DC3545",
+    "warn": "#9A7B12",
+    "barkGradient": [
+      "#5C4128",
+      "#8A6742",
+      "#7C5B3A",
+      "#553C24"
+    ],
+    "foliage": [
+      "#4E7C33",
+      "#3F6B2B",
+      "#5E8C3E",
+      "#365C24"
+    ]
+  },
+  "layouts": {
+    "split": {
+      "viewBox": {
+        "w": 1000,
+        "h": 600
+      },
+      "trunk": {
+        "topY": 120,
+        "botY": 560,
+        "topL": 396,
+        "topR": 604,
+        "botL": 356,
+        "botR": 644,
+        "wordY": 336
+      },
+      "button": {
+        "height": 46,
+        "minWidth": 74,
+        "charWidth": 17,
+        "padding": 34
+      },
+      "wordFontSizes": [
+        {
+          "maxLength": 7,
+          "size": 42
+        },
+        {
+          "maxLength": 9,
+          "size": 34
+        },
+        {
+          "maxLength": 99,
+          "size": 27
+        }
+      ],
+      "fan": {
+        "_note": "Branches are generated from the number of options, so any count works.",
+        "maxOptionsPerSide": 8,
+        "bareBranches": 4,
+        "attachInset": 52,
+        "minTipSpacing": 60,
+        "reachBase": 118,
+        "reachSwing": 95,
+        "bendStart": -26,
+        "bendEnd": 22,
+        "widthStart": 17,
+        "widthEnd": 13,
+        "sideMargin": 26,
+        "topMargin": 34
+      }
+    },
+    "canopy": {
+      "viewBox": {
+        "w": 1000
+      },
+      "button": {
+        "height": 48,
+        "minWidth": 78,
+        "charWidth": 16,
+        "padding": 30
+      },
+      "trunk": {
+        "topY": 346,
+        "botY": 578,
+        "topHW": 46,
+        "botHW": 78,
+        "rootFlare": 52
+      },
+      "plaque": {
+        "y": 452,
+        "width": 340,
+        "height": 82
+      },
+      "plaqueFontSizes": [
+        {
+          "maxLength": 7,
+          "size": 36
+        },
+        {
+          "maxLength": 10,
+          "size": 29
+        },
+        {
+          "maxLength": 99,
+          "size": 23
+        }
+      ],
+      "fan": {
+        "_note": "Options are packed into rows that grow with the option count; the canvas grows upward to fit.",
+        "maxOptions": 12,
+        "bottomY": 282,
+        "rowSpacing": 78,
+        "columnGap": 28,
+        "sideMargin": 44,
+        "topMargin": 40,
+        "maxPerRow": 4,
+        "forkSpread": 34,
+        "bendBase": 14,
+        "bendSwing": 22,
+        "widthStart": 16,
+        "widthEnd": 12
+      },
+      "foliage": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "sx": 1.1,
+          "sy": 1.34,
+          "shade": 1,
+          "opacity": 0.1
+        },
+        {
+          "dx": -0.33,
+          "dy": 0.18,
+          "sx": 0.66,
+          "sy": 0.94,
+          "shade": 0,
+          "opacity": 0.11
+        },
+        {
+          "dx": 0.33,
+          "dy": 0.18,
+          "sx": 0.66,
+          "sy": 0.94,
+          "shade": 0,
+          "opacity": 0.11
+        },
+        {
+          "dx": 0,
+          "dy": -0.34,
+          "sx": 0.74,
+          "sy": 0.8,
+          "shade": 2,
+          "opacity": 0.09
+        }
+      ],
+      "foliagePadding": 62
+    }
+  }
+}

@@ -1,0 +1,365 @@
+{
+  "schemaVersion": "1.0",
+  "meta": {
+    "title": "Lane Racer — default question bank",
+    "author": "",
+    "updated": "2026-09-06",
+    "howToEdit": [
+      "Questions are grouped by subject. The subject name is what appears on the sign banner header.",
+      "id must be unique across the whole file — results are recorded against it.",
+      "answer is the correct one; distractors must hold exactly (lanes - 1) wrong answers, so 2 for a three-lane road.",
+      "level 1 is easy, 2 medium, 3 harder. The game unlocks tiers as the stage number climbs.",
+      "Answers sit on a road sign roughly one lane wide. Keep them under about 12 characters — the renderer shrinks longer text, but it gets hard to read at speed.",
+      "Add a whole new subject by adding a new key under sets; nothing else needs changing."
+    ],
+    "maxAnswerChars": 12
+  },
+  "sets": {
+    "MATHS": [
+      {
+        "id": "m-01",
+        "q": "7 × 8",
+        "answer": "56",
+        "distractors": [
+          "54",
+          "48"
+        ],
+        "level": 1
+      },
+      {
+        "id": "m-02",
+        "q": "15 − 8",
+        "answer": "7",
+        "distractors": [
+          "6",
+          "9"
+        ],
+        "level": 1
+      },
+      {
+        "id": "m-03",
+        "q": "24 ÷ 6",
+        "answer": "4",
+        "distractors": [
+          "6",
+          "3"
+        ],
+        "level": 1
+      },
+      {
+        "id": "m-04",
+        "q": "13 + 19",
+        "answer": "32",
+        "distractors": [
+          "31",
+          "33"
+        ],
+        "level": 1
+      },
+      {
+        "id": "m-05",
+        "q": "9 × 6",
+        "answer": "54",
+        "distractors": [
+          "56",
+          "45"
+        ],
+        "level": 1
+      },
+      {
+        "id": "m-06",
+        "q": "100 − 37",
+        "answer": "63",
+        "distractors": [
+          "73",
+          "67"
+        ],
+        "level": 1
+      },
+      {
+        "id": "m-07",
+        "q": "12 × 12",
+        "answer": "144",
+        "distractors": [
+          "124",
+          "132"
+        ],
+        "level": 2
+      },
+      {
+        "id": "m-08",
+        "q": "20% of 60",
+        "answer": "12",
+        "distractors": [
+          "15",
+          "6"
+        ],
+        "level": 2
+      },
+      {
+        "id": "m-09",
+        "q": "3² + 4²",
+        "answer": "25",
+        "distractors": [
+          "49",
+          "14"
+        ],
+        "level": 2
+      },
+      {
+        "id": "m-10",
+        "q": "144 ÷ 12",
+        "answer": "12",
+        "distractors": [
+          "14",
+          "11"
+        ],
+        "level": 2
+      },
+      {
+        "id": "m-11",
+        "q": "√169",
+        "answer": "13",
+        "distractors": [
+          "12",
+          "17"
+        ],
+        "level": 3
+      },
+      {
+        "id": "m-12",
+        "q": "15% of 200",
+        "answer": "30",
+        "distractors": [
+          "25",
+          "35"
+        ],
+        "level": 3
+      },
+      {
+        "id": "m-13",
+        "q": "If 3x = 21, x =",
+        "answer": "7",
+        "distractors": [
+          "9",
+          "6"
+        ],
+        "level": 3
+      },
+      {
+        "id": "m-14",
+        "q": "2³ × 2²",
+        "answer": "32",
+        "distractors": [
+          "64",
+          "16"
+        ],
+        "level": 3
+      }
+    ],
+    "SCIENCE": [
+      {
+        "id": "s-01",
+        "q": "Gas we breathe in",
+        "answer": "OXYGEN",
+        "distractors": [
+          "CARBON",
+          "HELIUM"
+        ],
+        "level": 1
+      },
+      {
+        "id": "s-02",
+        "q": "Planet nearest the Sun",
+        "answer": "MERCURY",
+        "distractors": [
+          "VENUS",
+          "MARS"
+        ],
+        "level": 1
+      },
+      {
+        "id": "s-03",
+        "q": "H₂O is the formula for",
+        "answer": "WATER",
+        "distractors": [
+          "SALT",
+          "ACID"
+        ],
+        "level": 1
+      },
+      {
+        "id": "s-04",
+        "q": "Legs on an insect",
+        "answer": "6",
+        "distractors": [
+          "8",
+          "4"
+        ],
+        "level": 1
+      },
+      {
+        "id": "s-05",
+        "q": "Symbol for gold",
+        "answer": "Au",
+        "distractors": [
+          "Ag",
+          "Go"
+        ],
+        "level": 2
+      },
+      {
+        "id": "s-06",
+        "q": "Force pulling things down",
+        "answer": "GRAVITY",
+        "distractors": [
+          "FRICTION",
+          "MAGNETS"
+        ],
+        "level": 2
+      },
+      {
+        "id": "s-07",
+        "q": "Cell part that makes energy",
+        "answer": "MITOCHON.",
+        "distractors": [
+          "NUCLEUS",
+          "MEMBRANE"
+        ],
+        "level": 2
+      },
+      {
+        "id": "s-08",
+        "q": "State of matter with fixed shape",
+        "answer": "SOLID",
+        "distractors": [
+          "LIQUID",
+          "GAS"
+        ],
+        "level": 2
+      },
+      {
+        "id": "s-09",
+        "q": "pH of pure water",
+        "answer": "7",
+        "distractors": [
+          "0",
+          "14"
+        ],
+        "level": 3
+      },
+      {
+        "id": "s-10",
+        "q": "Bones in an adult human",
+        "answer": "206",
+        "distractors": [
+          "186",
+          "226"
+        ],
+        "level": 3
+      },
+      {
+        "id": "s-11",
+        "q": "Symbol for potassium",
+        "answer": "K",
+        "distractors": [
+          "P",
+          "Po"
+        ],
+        "level": 3
+      },
+      {
+        "id": "s-12",
+        "q": "Gas plants take in",
+        "answer": "CO₂",
+        "distractors": [
+          "O₂",
+          "N₂"
+        ],
+        "level": 3
+      }
+    ],
+    "GENERAL": [
+      {
+        "id": "g-01",
+        "q": "Capital of France",
+        "answer": "PARIS",
+        "distractors": [
+          "ROME",
+          "MADRID"
+        ],
+        "level": 1
+      },
+      {
+        "id": "g-02",
+        "q": "Days in a leap year",
+        "answer": "366",
+        "distractors": [
+          "365",
+          "367"
+        ],
+        "level": 1
+      },
+      {
+        "id": "g-03",
+        "q": "How many continents?",
+        "answer": "7",
+        "distractors": [
+          "5",
+          "6"
+        ],
+        "level": 1
+      },
+      {
+        "id": "g-04",
+        "q": "Sides on a hexagon",
+        "answer": "6",
+        "distractors": [
+          "5",
+          "8"
+        ],
+        "level": 1
+      },
+      {
+        "id": "g-05",
+        "q": "Largest ocean",
+        "answer": "PACIFIC",
+        "distractors": [
+          "ATLANTIC",
+          "INDIAN"
+        ],
+        "level": 2
+      },
+      {
+        "id": "g-06",
+        "q": "Wrote Romeo and Juliet",
+        "answer": "SHAKES-PEARE",
+        "distractors": [
+          "DICKENS",
+          "AUSTEN"
+        ],
+        "level": 2
+      },
+      {
+        "id": "g-07",
+        "q": "Players per football team",
+        "answer": "11",
+        "distractors": [
+          "9",
+          "12"
+        ],
+        "level": 2
+      },
+      {
+        "id": "g-08",
+        "q": "Colours in a rainbow",
+        "answer": "7",
+        "distractors": [
+          "6",
+          "9"
+        ],
+        "level": 2
+      }
+    ]
+  }
+}

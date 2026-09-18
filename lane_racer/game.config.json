@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "1.0",
+  "game": {
+    "id": "lane-racer-86",
+    "title": "LANE RACER ’86",
+    "subtitle": "QUIZ · HIGHWAY · REFLEX",
+    "questionsFile": "questions.json",
+    "lanes": 3,
+    "note": "questionsFile may be a single filename or an array of filenames; all are merged by subject."
+  },
+  "timing": {
+    "questionSeconds": 9,
+    "leadSeconds": 5,
+    "gapSeconds": 12,
+    "questionsPerLevel": 6,
+    "_note": "questionSeconds is the countdown the student gets. leadSeconds is how much road the run-up covers, measured in cruise-seconds — the car slows so that stretch takes questionSeconds. Raise questionSeconds to slow the quiz phase down further."
+  },
+  "speed": {
+    "base": 5.0,
+    "perLevel": 0.75,
+    "max": 10.5,
+    "minDuringQuiz": 1.1,
+    "brakeEaseSeconds": 1.0,
+    "brakeRate": 0.12,
+    "recoverRate": 0.035,
+    "kmhPerUnit": 36
+  },
+  "lives": {
+    "start": 3,
+    "invulnerableSeconds": 1.4,
+    "wrongAnswerCostsLife": true,
+    "crashCostsLife": true
+  },
+  "traffic": {
+    "marginBeforeZone": 340,
+    "zoneTailLength": 420,
+    "quizCarsMax": 1,
+    "quizCarChance": 0.5,
+    "quizWindow": 0.28,
+    "twoLaneBlockChance": 0.45,
+    "speedFactorMin": 0.3,
+    "speedFactorMax": 0.6,
+    "quizCarSpeedFactor": 0.22,
+    "clusterGapCars": 2.2,
+    "laneShiftGapCars": 2.0,
+    "spawnJitterCars": 1.6,
+    "_note": "quizCarsMax / quizCarChance / quizWindow govern how much traffic survives inside a question run-up. At 1 / 0.5 / 0.28 that is roughly a 90% cut. Set quizCarsMax to 0 for completely empty quiz stretches."
+  },
+  "collectables": {
+    "enabled": true,
+    "minPerQuestion": 1,
+    "maxPerQuestion": 2,
+    "spawnWindowStart": 0.32,
+    "spawnWindowEnd": 0.65,
+    "minSeparationCars": 2.6,
+    "heartChance": 0.35,
+    "maxLives": 3,
+    "pointsValue": 50,
+    "sizeCars": 0.62,
+    "_note": "Pickups only appear while a question is on screen, between spawnWindowStart and spawnWindowEnd of the run-up. spawnWindowStart must stay above traffic.quizWindow so a pickup can never land in the slot where the single quiz-zone car may sit; spawnWindowEnd leaves the rest of the clock free to settle into the answer lane. A heart is swapped for points at maxLives."
+  },
+  "scoring": {
+    "correct": 100,
+    "streakBonus": 20,
+    "comboToastAt": 3
+  },
+  "difficulty": {
+    "levelsPerTier": 2,
+    "maxTier": 3,
+    "shuffleQuestions": true
+  },
+  "layout": {
+    "screenAspectW": 18,
+    "screenAspectH": 25,
+    "roadWidthFrac": 0.8,
+    "roadWidthMax": 360,
+    "carWidthFrac": 0.62,
+    "carWidthMax": 62,
+    "carAspect": 1.75,
+    "playerYFrac": 0.15,
+    "playerYMin": 70,
+    "laneDashPeriod": 86,
+    "laneDashLength": 44,
+    "kerbPeriod": 52,
+    "patchPeriod": 260
+  },
+  "ui": {
+    "idleTop": "AWAITING",
+    "idleBottom": "SIGN BANNER",
+    "idleHint": "USE THE LANE BUTTONS BELOW",
+    "questionHint": "STEER INTO THE MATCHING LANE",
+    "quizZoneLabel": "QUIZ ZONE",
+    "correct": "CORRECT!",
+    "combo": "{n}x COMBO!",
+    "wrong": "WRONG — {answer}",
+    "crash": "CRASH!",
+    "stage": "STAGE {n}",
+    "gameOver": "GAME OVER",
+    "startTitle": "LANE RACER ’86",
+    "startBlurb": "READ THE SIGN. PICK THE LANE.",
+    "namePrompt": "ENTER NAME",
+    "startButton": "PRESS START",
+    "saveButton": "SAVE RESULTS",
+    "collectHeart": "EXTRA CAR!",
+    "collectPoints": "+{n}",
+    "collectHeartFull": "MAX CARS — BONUS"
+  },
+  "theme": {
+    "cabinet": {
+      "neonPink": "#FF2D95",
+      "neonCyan": "#00E5FF",
+      "neonAmber": "#FFC53D",
+      "neonLime": "#5BFF7B",
+      "neonRed": "#FF4D4D"
+    },
+    "road": {
+      "asphalt": "#8B8B93",
+      "asphaltAlt": "#82828A",
+      "patch": "#797981",
+      "line": "#FFFFFF",
+      "edge": "#F2F2F5",
+      "curbA": "#DA3B3B",
+      "curbB": "#F4F4F6",
+      "railDark": "#232733",
+      "railStripe": "#F5C518"
+    },
+    "terrain": {
+      "water": "#17A9B5",
+      "waterDeep": "#118C97",
+      "foam": "#7BE3E8",
+      "grass": "#4CA64C",
+      "grassDark": "#3A8440",
+      "bush": "#2F6B36",
+      "sand": "#E3C877"
+    },
+    "sign": {
+      "body": "#1D2331",
+      "rim": "#F5C518",
+      "ink": "#FFFFFF",
+      "good": "#3DD35F",
+      "bad": "#E8453C",
+      "pick": "#20C7E8"
+    },
+    "quizZone": {
+      "tint": "rgba(24,120,170,.22)",
+      "dash": "#7FE9FF"
+    },
+    "cars": [
+      {
+        "body": "#E03C3C",
+        "roof": "#A82424",
+        "trim": "#FFD9D9"
+      },
+      {
+        "body": "#F2B01E",
+        "roof": "#B87C0A",
+        "trim": "#FFF0C2"
+      },
+      {
+        "body": "#2F6BD8",
+        "roof": "#1B448F",
+        "trim": "#CFE0FF"
+      },
+      {
+        "body": "#7B45C9",
+        "roof": "#512C8C",
+        "trim": "#E4D4FF"
+      },
+      {
+        "body": "#E6E6EA",
+        "roof": "#A8A8B4",
+        "trim": "#FFFFFF"
+      },
+      {
+        "body": "#2CA85E",
+        "roof": "#1A6E3C",
+        "trim": "#D4FFE2"
+      }
+    ],
+    "playerCar": {
+      "body": "#2F6BD8",
+      "roof": "#17337A",
+      "trim": "#FFD400"
+    },
+    "collectables": {
+      "heart": "#FF4D8D",
+      "heartDark": "#B01E5C",
+      "coin": "#FFC53D",
+      "coinDark": "#B8860B",
+      "shine": "#FFF6D8",
+      "outline": "#15151A"
+    }
+  },
+  "results": {
+    "collectStudentName": true,
+    "autoSaveLocalStorage": true,
+    "storageKey": "lane-racer-results",
+    "downloadFileName": "results.json",
+    "endpoint": ""
+  }
+}

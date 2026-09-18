@@ -1,0 +1,317 @@
+{
+  "schemaVersion": "2.0",
+  "session": {
+    "id": "s-20260906181657.-12ba",
+    "gameId": "affix-tree",
+    "mode": "synonyms",
+    "student": {
+      "name": "Brandon",
+      "id": ""
+    },
+    "startedAt": "2026-09-06T18:16:57.313Z",
+    "endedAt": "2026-09-06T18:17:50.296Z",
+    "durationMs": 52983,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+  },
+  "summary": {
+    "attempted": 6,
+    "correct": 6,
+    "incorrect": 0,
+    "firstTryCorrect": 6,
+    "accuracyPct": 100,
+    "score": 600,
+    "maxScore": 600,
+    "totalAttempts": 6,
+    "totalTimeMs": 36102,
+    "averageTimePerQuestionMs": 6017,
+    "fastestQuestionMs": 4142,
+    "slowestQuestionMs": 8715
+  },
+  "answers": [
+    {
+      "order": 1,
+      "questionId": "syn-01",
+      "mode": "synonyms",
+      "answerType": "single",
+      "prompt": "Which word means the same as “delighted”?",
+      "word": "delighted",
+      "target": "thrilled",
+      "expected": {
+        "choice": "thrilled"
+      },
+      "options": {
+        "choices": [
+          "thrilled",
+          "furious",
+          "anxious",
+          "bored"
+        ]
+      },
+      "attempts": [
+        {
+          "n": 1,
+          "chosen": {
+            "choice": "thrilled"
+          },
+          "parts": {
+            "choice": true
+          },
+          "correct": true,
+          "msSinceShown": 8715,
+          "at": "2026-09-06T18:17:06.027Z"
+        }
+      ],
+      "finalAnswer": {
+        "choice": "thrilled"
+      },
+      "correct": true,
+      "firstTry": true,
+      "resolution": "correct",
+      "attemptCount": 1,
+      "shownAt": "2026-09-06T18:16:57.313Z",
+      "answeredAt": "2026-09-06T18:17:06.028Z",
+      "timeToFirstAttemptMs": 8715,
+      "timeTakenMs": 8715,
+      "score": 100
+    },
+    {
+      "order": 2,
+      "questionId": "syn-02",
+      "mode": "synonyms",
+      "answerType": "single",
+      "prompt": "Which word means the same as “enormous”?",
+      "word": "enormous",
+      "target": "gigantic",
+      "expected": {
+        "choice": "gigantic"
+      },
+      "options": {
+        "choices": [
+          "gigantic",
+          "tiny",
+          "narrow",
+          "slender",
+          "minor"
+        ]
+      },
+      "attempts": [
+        {
+          "n": 1,
+          "chosen": {
+            "choice": "gigantic"
+          },
+          "parts": {
+            "choice": true
+          },
+          "correct": true,
+          "msSinceShown": 4659,
+          "at": "2026-09-06T18:17:11.524Z"
+        }
+      ],
+      "finalAnswer": {
+        "choice": "gigantic"
+      },
+      "correct": true,
+      "firstTry": true,
+      "resolution": "correct",
+      "attemptCount": 1,
+      "shownAt": "2026-09-06T18:17:06.865Z",
+      "answeredAt": "2026-09-06T18:17:11.524Z",
+      "timeToFirstAttemptMs": 4659,
+      "timeTakenMs": 4659,
+      "score": 100
+    },
+    {
+      "order": 3,
+      "questionId": "syn-03",
+      "mode": "synonyms",
+      "answerType": "single",
+      "prompt": "Which word means the same as “brave”?",
+      "word": "brave",
+      "target": "courageous",
+      "expected": {
+        "choice": "courageous"
+      },
+      "options": {
+        "choices": [
+          "courageous",
+          "fearful",
+          "timid",
+          "anxious",
+          "weary",
+          "gentle"
+        ]
+      },
+      "attempts": [
+        {
+          "n": 1,
+          "chosen": {
+            "choice": "courageous"
+          },
+          "parts": {
+            "choice": true
+          },
+          "correct": true,
+          "msSinceShown": 7199,
+          "at": "2026-09-06T18:17:19.421Z"
+        }
+      ],
+      "finalAnswer": {
+        "choice": "courageous"
+      },
+      "correct": true,
+      "firstTry": true,
+      "resolution": "correct",
+      "attemptCount": 1,
+      "shownAt": "2026-09-06T18:17:12.223Z",
+      "answeredAt": "2026-09-06T18:17:19.421Z",
+      "timeToFirstAttemptMs": 7199,
+      "timeTakenMs": 7199,
+      "score": 100
+    },
+    {
+      "order": 4,
+      "questionId": "syn-04",
+      "mode": "synonyms",
+      "answerType": "single",
+      "prompt": "Which word means the same as “quick”?",
+      "word": "quick",
+      "target": "rapid",
+      "expected": {
+        "choice": "rapid"
+      },
+      "options": {
+        "choices": [
+          "rapid",
+          "sluggish",
+          "gradual",
+          "steady",
+          "patient",
+          "delayed",
+          "idle"
+        ]
+      },
+      "attempts": [
+        {
+          "n": 1,
+          "chosen": {
+            "choice": "rapid"
+          },
+          "parts": {
+            "choice": true
+          },
+          "correct": true,
+          "msSinceShown": 5310,
+          "at": "2026-09-06T18:17:25.271Z"
+        }
+      ],
+      "finalAnswer": {
+        "choice": "rapid"
+      },
+      "correct": true,
+      "firstTry": true,
+      "resolution": "correct",
+      "attemptCount": 1,
+      "shownAt": "2026-09-06T18:17:19.962Z",
+      "answeredAt": "2026-09-06T18:17:25.271Z",
+      "timeToFirstAttemptMs": 5310,
+      "timeTakenMs": 5310,
+      "score": 100
+    },
+    {
+      "order": 5,
+      "questionId": "syn-05",
+      "mode": "synonyms",
+      "answerType": "single",
+      "prompt": "Which word means the same as “beautiful”?",
+      "word": "beautiful",
+      "target": "gorgeous",
+      "expected": {
+        "choice": "gorgeous"
+      },
+      "options": {
+        "choices": [
+          "gorgeous",
+          "hideous",
+          "plain",
+          "dull",
+          "drab",
+          "awkward",
+          "coarse",
+          "shabby"
+        ]
+      },
+      "attempts": [
+        {
+          "n": 1,
+          "chosen": {
+            "choice": "gorgeous"
+          },
+          "parts": {
+            "choice": true
+          },
+          "correct": true,
+          "msSinceShown": 4142,
+          "at": "2026-09-06T18:17:29.932Z"
+        }
+      ],
+      "finalAnswer": {
+        "choice": "gorgeous"
+      },
+      "correct": true,
+      "firstTry": true,
+      "resolution": "correct",
+      "attemptCount": 1,
+      "shownAt": "2026-09-06T18:17:25.790Z",
+      "answeredAt": "2026-09-06T18:17:29.932Z",
+      "timeToFirstAttemptMs": 4142,
+      "timeTakenMs": 4142,
+      "score": 100
+    },
+    {
+      "order": 6,
+      "questionId": "syn-06",
+      "mode": "synonyms",
+      "answerType": "single",
+      "prompt": "Which word means the same as “difficult”?",
+      "word": "difficult",
+      "target": "challenging",
+      "expected": {
+        "choice": "challenging"
+      },
+      "options": {
+        "choices": [
+          "challenging",
+          "simple",
+          "effortless"
+        ]
+      },
+      "attempts": [
+        {
+          "n": 1,
+          "chosen": {
+            "choice": "challenging"
+          },
+          "parts": {
+            "choice": true
+          },
+          "correct": true,
+          "msSinceShown": 6077,
+          "at": "2026-09-06T18:17:36.418Z"
+        }
+      ],
+      "finalAnswer": {
+        "choice": "challenging"
+      },
+      "correct": true,
+      "firstTry": true,
+      "resolution": "correct",
+      "attemptCount": 1,
+      "shownAt": "2026-09-06T18:17:30.340Z",
+      "answeredAt": "2026-09-06T18:17:36.418Z",
+      "timeToFirstAttemptMs": 6077,
+      "timeTakenMs": 6077,
+      "score": 100
+    }
+  ]
+}

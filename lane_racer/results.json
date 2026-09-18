@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "1.0",
+
+  "_readme": {
+    "purpose": "The shape the game writes when a run ends. This file is a filled-in sample so the format is unambiguous — the game overwrites it on download.",
+    "produced": "SAVE RESULTS on the game-over screen, or read it from localStorage under the key set in game.config.json. If results.endpoint is set, the same object is POSTed there.",
+    "fields": {
+      "answers[].lanes": "Which answer sat above which lane on that pass — the arrangement is shuffled per question, so this is needed to interpret chosenLane.",
+      "answers[].moves": "Every lane change during the countdown, with milliseconds since the question appeared.",
+      "answers[].timeToFirstMoveMs": "How long the student took to commit to anything. Null means they never moved.",
+      "answers[].timeToFinalLaneMs": "When they last changed lane — how long they took to settle.",
+      "answers[].secondsLeftAtFinalLane": "Clock remaining when they settled. Small numbers mean last-second guesses.",
+      "answers[].settledEarly": "True when they settled in the first 60% of the window.",
+      "answers[].laneChanges": "0 means the answer happened to be in the lane they were already in.",
+      "crashes[]": "Traffic collisions, with whether one happened while a question was live."
+    }
+  },
+
+  "session": {
+    "id": "s-20260906-171204-3ac9",
+    "gameId": "lane-racer-86",
+    "student": { "name": "SAM", "id": "" },
+    "startedAt": "2026-09-06T17:12:04.221Z",
+    "endedAt": "2026-09-06T17:14:52.880Z",
+    "durationMs": 168659,
+    "settings": { "questionSeconds": 9, "lanes": 3, "startLives": 3, "baseSpeed": 5 },
+    "userAgent": "Mozilla/5.0"
+  },
+
+  "summary": {
+    "asked": 4,
+    "correct": 3,
+    "incorrect": 1,
+    "accuracyPct": 75,
+    "score": 320,
+    "stageReached": 1,
+    "bestStreak": 2,
+    "crashes": 2,
+    "livesLost": 3,
+    "averageTimeToFirstMoveMs": 2704,
+    "averageTimeToFinalLaneMs": 4612,
+    "answeredWithoutMoving": 1,
+    "settledEarly": 2,
+    "bySubject": {
+      "MATHS": { "asked": 2, "correct": 2, "accuracyPct": 100 },
+      "SCIENCE": { "asked": 1, "correct": 1, "accuracyPct": 100 },
+      "GENERAL": { "asked": 1, "correct": 0, "accuracyPct": 0 }
+    }
+  },
+
+  "answers": [
+    {
+      "order": 1,
+      "questionId": "m-01",
+      "subject": "MATHS",
+      "stage": 1,
+      "prompt": "7 × 8",
+      "lanes": [
+        { "lane": 0, "label": "L", "answer": "54" },
+        { "lane": 1, "label": "M", "answer": "56" },
+        { "lane": 2, "label": "R", "answer": "48" }
+      ],
+      "correctAnswer": "56",
+      "correctLane": 1,
+      "startedInLane": 1,
+      "chosenLane": 1,
+      "chosenAnswer": "56",
+      "correct": true,
+      "laneChanges": 0,
+      "moves": [],
+      "timeToFirstMoveMs": null,
+      "timeToFinalLaneMs": null,
+      "secondsLeftAtFinalLane": null,
+      "settledEarly": true,
+      "windowMs": 9002,
+      "score": 100,
+      "shownAt": "2026-09-06T17:12:19.404Z"
+    },
+    {
+      "order": 2,
+      "questionId": "s-02",
+      "subject": "SCIENCE",
+      "stage": 1,
+      "prompt": "Planet nearest the Sun",
+      "lanes": [
+        { "lane": 0, "label": "L", "answer": "MARS" },
+        { "lane": 1, "label": "M", "answer": "VENUS" },
+        { "lane": 2, "label": "R", "answer": "MERCURY" }
+      ],
+      "correctAnswer": "MERCURY",
+      "correctLane": 2,
+      "startedInLane": 1,
+      "chosenLane": 2,
+      "chosenAnswer": "MERCURY",
+      "correct": true,
+      "laneChanges": 1,
+      "moves": [ { "toLane": 2, "atMs": 2188 } ],
+      "timeToFirstMoveMs": 2188,
+      "timeToFinalLaneMs": 2188,
+      "secondsLeftAtFinalLane": 6.81,
+      "settledEarly": true,
+      "windowMs": 9004,
+      "score": 120,
+      "shownAt": "2026-09-06T17:12:41.900Z"
+    },
+    {
+      "order": 3,
+      "questionId": "g-05",
+      "subject": "GENERAL",
+      "stage": 1,
+      "prompt": "Largest ocean",
+      "lanes": [
+        { "lane": 0, "label": "L", "answer": "PACIFIC" },
+        { "lane": 1, "label": "M", "answer": "INDIAN" },
+        { "lane": 2, "label": "R", "answer": "ATLANTIC" }
+      ],
+      "correctAnswer": "PACIFIC",
+      "correctLane": 0,
+      "startedInLane": 2,
+      "chosenLane": 2,
+      "chosenAnswer": "ATLANTIC",
+      "correct": false,
+      "laneChanges": 2,
+      "moves": [ { "toLane": 1, "atMs": 4102 }, { "toLane": 2, "atMs": 8460 } ],
+      "timeToFirstMoveMs": 4102,
+      "timeToFinalLaneMs": 8460,
+      "secondsLeftAtFinalLane": 0.54,
+      "settledEarly": false,
+      "windowMs": 9003,
+      "score": 0,
+      "shownAt": "2026-09-06T17:13:08.640Z"
+    },
+    {
+      "order": 4,
+      "questionId": "m-08",
+      "subject": "MATHS",
+      "stage": 1,
+      "prompt": "20% of 60",
+      "lanes": [
+        { "lane": 0, "label": "L", "answer": "6" },
+        { "lane": 1, "label": "M", "answer": "12" },
+        { "lane": 2, "label": "R", "answer": "15" }
+      ],
+      "correctAnswer": "12",
+      "correctLane": 1,
+      "startedInLane": 2,
+      "chosenLane": 1,
+      "chosenAnswer": "12",
+      "correct": true,
+      "laneChanges": 1,
+      "moves": [ { "toLane": 1, "atMs": 1822 } ],
+      "timeToFirstMoveMs": 1822,
+      "timeToFinalLaneMs": 1822,
+      "secondsLeftAtFinalLane": 7.18,
+      "settledEarly": true,
+      "windowMs": 9001,
+      "score": 100,
+      "shownAt": "2026-09-06T17:13:36.180Z"
+    }
+  ],
+
+  "crashes": [
+    { "stage": 1, "lane": 2, "duringQuestion": false, "questionId": null, "at": "2026-09-06T17:13:02.115Z" },
+    { "stage": 1, "lane": 0, "duringQuestion": false, "questionId": null, "at": "2026-09-06T17:14:52.880Z" }
+  ]
+}

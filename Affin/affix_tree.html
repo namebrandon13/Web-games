@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Affix Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  html,body{height:100%;margin:0;background:#F6F1E7;overflow:hidden}
+  body{padding:clamp(6px,1.4vh,18px) clamp(8px,1.6vw,22px)}
+  affix-game{display:block;height:100%}
+  /* narrow or very short screens fall back to normal scrolling */
+  @media (max-width:760px),(max-height:480px){
+    html,body{height:auto;overflow:auto}
+    affix-game{height:auto}
+  }
+</style>
+</head>
+<body>
+
+<affix-game data-config="game.config.json"></affix-game>
+
+<script>
+/* =============================================================
+   Affix Tree
+     game.config.json  — modes, rules, scoring, theme, both tree layouts
+     questions.json    — the editable question bank
+     results.json      — written out by this game
+
+   Two trees:
+     split  — trunk holds a root word, prefixes left, suffixes right
+     canopy — full tree, options hang in the branches, trunk plaque
+              holds the single chosen word
+   ============================================================= */
+
+/* ---------- curve helpers ---------- */
+function cubic(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return [
+    u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0],
+    u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]
+  ];
+}
+function cubicTangent(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  const x = 3*u*u*(p1[0]-p0[0]) + 6*u*t*(p2[0]-p1[0]) + 3*t*t*(p3[0]-p2[0]);
+  const y = 3*u*u*(p1[1]-p0[1]) + 6*u*t*(p2[1]-p1[1]) + 3*t*t*(p3[1]-p2[1]);
+  const m = Math.hypot(x, y) || 1;
+  return [x/m, y/m];
+}
+function controlPoints(start, end, bend) {
+  const dx = end[0]-start[0], dy = end[1]-start[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy/len, ny = dx/len;
+  return [
+    [start[0] + dx*0.35 + nx*bend, start[1] + dy*0.35 + ny*bend],
+    [start[0] + dx*0.72 + nx*bend*0.55, start[1] + dy*0.72 + ny*bend*0.55]
+  ];
+}
+function taperedBranch(start, end, bend, w0, w1 = 4) {
+  const [c1, c2] = controlPoints(start, end, bend);
+  const N = 26, a = [], b = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const p = cubic(start, c1, c2, end, t);
+    const d = cubicTangent(start, c1, c2, end, t);
+    const half = (w0 + (w1 - w0) * Math.pow(t, 0.8)) / 2;
+    a.push([p[0] - d[1]*half, p[1] + d[0]*half]);
+    b.push([p[0] + d[1]*half, p[1] - d[0]*half]);
+  }
+  return 'M ' + a.concat(b.reverse()).map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L ') + ' Z';
+}
+function twig(from, to) {
+  const mx = (from[0] + to[0]) / 2, my = (from[1] + to[1]) / 2 - 6;
+  return `M ${from[0]} ${from[1]} Q ${mx} ${my} ${to[0]} ${to[1]}`;
+}
+
+/* ---------- small utilities ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtMs = ms => {
+  if (ms == null) return '—';
+  const s = ms / 1000;
+  if (s < 60) return s.toFixed(1) + 's';
+  const m = Math.floor(s / 60);
+  return `${m}m ${String(Math.round(s - m*60)).padStart(2,'0')}s`;
+};
+const tpl = (str, vars) => String(str || '').replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+const pickFont = (rows, len) => (rows.find(r => len <= r.maxLength) || rows[rows.length-1]).size;
+function shuffled(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* =============================================================
+   Component
+   ============================================================= */
+class AffixGame extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.config = null; this.bank = null;
+    this.levels = []; this.levelIndex = 0; this.mode = null;
+    this._prefix = ''; this._suffix = ''; this._choice = '';
+    this.solved = false; this.closed = false; this.finished = false;
+    this.studentName = ''; this.session = null; this.record = null;
+  }
+
+  connectedCallback() { this.boot(); }
+
+  /* ---------- loading ---------- */
+  async boot() {
+    this.renderMessage('Loading…');
+    const configPath = this.dataset.config || 'game.config.json';
+    try {
+      const config = await this.fetchJSON(configPath);
+      const files = Array.isArray(config.game.questionsFile)
+        ? config.game.questionsFile : [config.game.questionsFile];
+      const banks = await Promise.all(files.map(f => this.fetchJSON(f)));
+      this.start(config, this.mergeBanks(banks));
+    } catch (err) {
+      this.renderLoader(configPath, err);
+    }
+  }
+
+  async fetchJSON(path) {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+    return res.json();
+  }
+
+  mergeBanks(banks) {
+    const sets = {};
+    banks.forEach(b => Object.entries(b.sets || {}).forEach(([m, list]) => {
+      sets[m] = (sets[m] || []).concat(list);
+    }));
+    return { sets, meta: banks[0]?.meta || {} };
+  }
+
+  start(config, bank) {
+    this.config = config;
+    this.bank = bank;
+    this.mode = config.modes[0].id;
+    this.newSession();
+    this.loadMode(this.mode);
+    this.render();
+  }
+
+  renderMessage(text) {
+    this.shadowRoot.innerHTML =
+      `<div style="padding:60px;text-align:center;color:#7C5B3A;font-family:Inter,sans-serif">${esc(text)}</div>`;
+  }
+
+  /* file picker fallback — accepts files in any order, one at a time or together */
+  renderLoader(configPath, err) {
+    this._picked = { config: null, banks: [], names: { config: '', banks: [] } };
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host{font-family:'Inter',system-ui,sans-serif;display:block}
+        .box{max-width:660px;margin:40px auto;background:#FDFAF4;border-radius:20px;
+             padding:34px 32px;box-shadow:0 18px 50px rgba(58,45,30,.10);color:#2A2620}
+        h2{font-family:'Fraunces',serif;font-size:1.4rem;margin:0 0 10px;color:#2B4A1C}
+        p{line-height:1.6;font-size:.94rem;color:#5C5348;margin:0 0 14px}
+        code{background:#F2EADC;padding:2px 7px;border-radius:5px;font-size:.86rem}
+        .note{font-size:.82rem;color:#8A6A1E;background:#FBF0D5;padding:9px 12px;border-radius:8px;margin-bottom:18px}
+        .err{font-size:.85rem;color:#C9542F;background:#F8DFD5;padding:9px 12px;border-radius:8px;margin:14px 0 0;display:none}
+        .err.show{display:block}
+        .slot{display:flex;align-items:center;gap:12px;border:2px solid #E6DCC9;border-radius:12px;
+              padding:14px 16px;margin-bottom:10px;background:#fff;transition:all .2s}
+        .slot.done{border-color:#3F6B2B;background:#F3F8EE}
+        .tick{width:26px;height:26px;border-radius:50%;background:#E6DCC9;color:#fff;flex:0 0 auto;
+              font-size:14px;line-height:26px;text-align:center;font-weight:700}
+        .slot.done .tick{background:#3F6B2B}
+        .slot .lbl{flex:1;font-size:.9rem;font-weight:600}
+        .slot .sub{display:block;font-weight:500;font-size:.78rem;color:#8A8073;margin-top:2px}
+        input[type=file]{display:none}
+        .pick{border:2px solid #CBBBA0;background:#fff;color:#2B4A1C;font:inherit;font-weight:700;
+              font-size:.84rem;padding:9px 16px;border-radius:9px;cursor:pointer;white-space:nowrap}
+        .pick:hover{border-color:#2B4A1C;background:#F2EADC}
+        .drop{border:2px dashed #CBBBA0;border-radius:12px;padding:20px;text-align:center;
+              font-size:.86rem;color:#8A8073;margin-top:6px;transition:all .2s}
+        .drop.over{border-color:#3F6B2B;background:#F3F8EE;color:#3F6B2B}
+        .hr{border-top:1px solid #E6DCC9;margin:20px 0 16px}
+      </style>
+      <div class="box">
+        <h2>Pick the two JSON files</h2>
+        <div class="note">${esc(err.message)}</div>
+        <p>Browsers block a page opened straight from disk from reading files beside it. Either serve the
+           folder with <code>python3 -m http.server</code>, or hand the files over below — one at a time is fine.</p>
+        <div class="slot" id="slot-config">
+          <div class="tick">1</div>
+          <div class="lbl">Game config<span class="sub" id="sub-config">${esc(configPath)} — not loaded</span></div>
+          <label class="pick">Choose<input type="file" accept=".json,application/json" id="in-config"></label>
+        </div>
+        <div class="slot" id="slot-bank">
+          <div class="tick">2</div>
+          <div class="lbl">Questions<span class="sub" id="sub-bank">questions.json — not loaded</span></div>
+          <label class="pick">Choose<input type="file" accept=".json,application/json" id="in-bank" multiple></label>
+        </div>
+        <div class="hr"></div>
+        <div class="drop" id="drop">Or drop both files here — or
+          <label class="pick" style="padding:5px 11px">pick the whole folder<input type="file" id="in-dir" webkitdirectory directory multiple></label>
+        </div>
+        <div class="err" id="lerr"></div>
+      </div>`;
+
+    const R = this.shadowRoot;
+    const fail = m => { const e = R.getElementById('lerr'); e.textContent = m; e.classList.add('show'); };
+    const paint = () => {
+      const p = this._picked;
+      R.getElementById('slot-config').classList.toggle('done', !!p.config);
+      R.getElementById('slot-bank').classList.toggle('done', p.banks.length > 0);
+      R.getElementById('sub-config').textContent = p.config
+        ? `${p.names.config} — ${p.config.modes.length} modes ready` : `${configPath} — not loaded`;
+      const n = p.banks.reduce((s,b)=>s+Object.values(b.sets).reduce((x,l)=>x+l.length,0),0);
+      R.getElementById('sub-bank').textContent = p.banks.length
+        ? `${p.names.banks.join(', ')} — ${n} questions ready` : 'questions.json — not loaded';
+      if (p.config && p.banks.length) setTimeout(() => this.start(p.config, this.mergeBanks(p.banks)), 220);
+    };
+    const ingest = async fileList => {
+      const files = [...fileList].filter(f => /\.json$/i.test(f.name));
+      if (!files.length) return fail('No .json files in that selection.');
+      const skipped = [];
+      for (const f of files) {
+        let d;
+        try { d = JSON.parse(await f.text()); }
+        catch (e) { fail(`${f.name} is not valid JSON — ${e.message}`); continue; }
+        if (d.modes && d.layouts) { this._picked.config = d; this._picked.names.config = f.name; }
+        else if (d.sets) { this._picked.banks.push(d); this._picked.names.banks.push(f.name); }
+        else if (d.answers || d.summary || d._readme) skipped.push(`${f.name} (that is a results file)`);
+        else skipped.push(`${f.name} (no "modes"+"layouts" and no "sets")`);
+      }
+      if (skipped.length) fail('Ignored: ' + skipped.join('; '));
+      else R.getElementById('lerr').classList.remove('show');
+      paint();
+    };
+    ['in-config','in-bank','in-dir'].forEach(id =>
+      R.getElementById(id).addEventListener('change', e => ingest(e.target.files)));
+    const drop = R.getElementById('drop');
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => ingest(e.dataTransfer.files));
+  }
+
+  /* ---------- accessors ---------- */
+  get modeDef() { return this.config.modes.find(m => m.id === this.mode); }
+  get layout() { return this.config.layouts[this.modeDef.tree]; }
+  get level() { return this.levels[this.levelIndex] || null; }
+  get maxAttempts() {
+    const n = this.config.rules.maxAttemptsPerQuestion;
+    return n > 0 ? n : Infinity;
+  }
+  get isSingle() { return this.modeDef.answer === 'single'; }
+  get needPrefix() { return !this.isSingle && this.level.requires !== 'suffix'; }
+  get needSuffix() { return !this.isSingle && this.level.requires !== 'prefix'; }
+
+  btnWidth(label) {
+    const b = this.layout.button;
+    return Math.max(b.minWidth, label.length * b.charWidth + b.padding);
+  }
+
+  /* ---------- session / results ---------- */
+  newSession() {
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[-:T]/g,'').slice(0,15);
+    this.session = {
+      schemaVersion: '2.0',
+      session: {
+        id: `s-${stamp}-${Math.random().toString(16).slice(2,6)}`,
+        gameId: this.config.game.id,
+        mode: this.mode,
+        student: { name: this.studentName, id: '' },
+        startedAt: now.toISOString(),
+        endedAt: null, durationMs: 0,
+        userAgent: navigator.userAgent
+      },
+      summary: {}, answers: []
+    };
+    this.finished = false;
+  }
+
+  loadMode(mode) {
+    const rules = this.config.rules;
+    let list = (this.bank.sets[mode] || []).map(q => ({ ...q }));
+    if (rules.shuffleQuestions) list = shuffled(list);
+    if (rules.questionsPerRound > 0) list = list.slice(0, rules.questionsPerRound);
+
+    const md = this.config.modes.find(m => m.id === mode);
+    const lay = this.config.layouts[md.tree];
+
+    list = list.map(q => {
+      const o = { ...q };
+      if (md.answer === 'single') {
+        const cap = lay.fan.maxOptions;
+        o.options = (rules.shuffleOptions ? shuffled(q.options) : q.options).slice(0, cap);
+        if (!o.options.includes(q.answer)) o.options[o.options.length - 1] = q.answer;
+      } else {
+        const cap = lay.fan.maxOptionsPerSide;
+        o.prefixOptions = (rules.shuffleOptions ? shuffled(q.prefixOptions||[]) : (q.prefixOptions||[])).slice(0, cap);
+        o.suffixOptions = (rules.shuffleOptions ? shuffled(q.suffixOptions||[]) : (q.suffixOptions||[])).slice(0, cap);
+      }
+      return o;
+    });
+
+    this.levels = list;
+    this.levelIndex = 0;
+    this.resetQuestionState();
+  }
+
+  resetQuestionState() {
+    this._prefix = ''; this._suffix = ''; this._choice = '';
+    this.solved = false; this.closed = false; this.record = null;
+  }
+
+  openRecord() {
+    const L = this.level;
+    if (!L || this.record) return;
+    const md = this.modeDef;
+    this.record = {
+      order: this.session.answers.length + 1,
+      questionId: L.id || `${this.mode}-${this.levelIndex + 1}`,
+      mode: this.mode,
+      answerType: md.answer,
+      prompt: this.clueText(),
+      word: L.word || L.root || null,
+      target: L.target || L.answer,
+      expected: this.isSingle
+        ? { choice: L.answer }
+        : { prefix: L.validPrefix || null, suffix: L.validSuffix || null, requires: L.requires },
+      options: this.isSingle
+        ? { choices: L.options }
+        : { prefix: L.prefixOptions, suffix: L.suffixOptions },
+      attempts: [],
+      finalAnswer: null,
+      correct: false, firstTry: false, resolution: 'unanswered', attemptCount: 0,
+      shownAt: new Date().toISOString(), answeredAt: null,
+      timeToFirstAttemptMs: null, timeTakenMs: null, score: 0,
+      _t0: performance.now()
+    };
+  }
+
+  closeRecord(resolution) {
+    const r = this.record;
+    if (!r || this.closed) return;
+    const sc = this.config.scoring;
+    r.resolution = resolution;
+    r.correct = resolution === 'correct';
+    r.firstTry = r.correct && r.attemptCount === 1;
+    r.answeredAt = new Date().toISOString();
+    r.timeTakenMs = Math.round(performance.now() - r._t0);
+    r.score = r.correct ? (r.firstTry ? sc.correctFirstTry : sc.correctAfterRetry) : sc.unsolved;
+    r.score = Math.max(0, r.score - (sc.wrongAttemptPenalty || 0) * Math.max(0, r.attemptCount - (r.correct ? 1 : 0)));
+    delete r._t0;
+    this.session.answers.push(r);
+    this.closed = true;
+    this.saveLocal();
+  }
+
+  summarise() {
+    const A = this.session.answers;
+    const times = A.map(a => a.timeTakenMs).filter(n => n != null);
+    const total = times.reduce((s,n) => s+n, 0);
+    const correct = A.filter(a => a.correct).length;
+    this.session.session.endedAt = new Date().toISOString();
+    this.session.session.durationMs =
+      new Date(this.session.session.endedAt) - new Date(this.session.session.startedAt);
+    this.session.session.student.name = this.studentName;
+    this.session.summary = {
+      attempted: A.length, correct, incorrect: A.length - correct,
+      firstTryCorrect: A.filter(a => a.firstTry).length,
+      accuracyPct: A.length ? Math.round(correct / A.length * 100) : 0,
+      score: A.reduce((s,a) => s + a.score, 0),
+      maxScore: A.length * this.config.scoring.correctFirstTry,
+      totalAttempts: A.reduce((s,a) => s + a.attemptCount, 0),
+      totalTimeMs: total,
+      averageTimePerQuestionMs: A.length ? Math.round(total / A.length) : 0,
+      fastestQuestionMs: times.length ? Math.min(...times) : 0,
+      slowestQuestionMs: times.length ? Math.max(...times) : 0
+    };
+    return this.session;
+  }
+
+  saveLocal() {
+    const r = this.config.results;
+    if (!r.autoSaveLocalStorage) return;
+    try { localStorage.setItem(r.storageKey, JSON.stringify(this.summarise())); } catch (e) {}
+  }
+
+  downloadResults() {
+    const blob = new Blob([JSON.stringify(this.summarise(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = this.config.results.downloadFileName || 'results.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async postResults() {
+    const url = this.config.results.endpoint;
+    if (!url) return;
+    try {
+      await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(this.summarise()) });
+    } catch (e) {}
+  }
+
+  /* =========================================================
+     TREE 1 — split trunk, prefixes left, suffixes right.
+     Branch positions are generated from the option count.
+     ========================================================= */
+  splitSlots(side, labels) {
+    const lay = this.layout, t = lay.trunk, f = lay.fan;
+    const N = labels.length;
+    if (!N) return [];
+    const cy = (t.topY + t.botY) / 2;
+    const edge = y => side === 'left'
+      ? t.topL + (t.botL - t.topL) * (y - t.topY) / (t.botY - t.topY)
+      : t.topR + (t.botR - t.topR) * (y - t.topY) / (t.botY - t.topY);
+
+    const span = (t.botY - t.topY) - 2 * f.attachInset;
+    const spacing = N > 1 ? Math.max(f.minTipSpacing, span / (N - 1)) : 0;
+    const dir = side === 'left' ? -1 : 1;
+
+    return labels.map((label, i) => {
+      const u = N > 1 ? i / (N - 1) : 0.5;
+      const attachY = t.topY + f.attachInset + u * span;
+      const tipY = cy + (i - (N - 1) / 2) * spacing;
+      const btnW = this.btnWidth(label || '');
+      let tipX = edge(attachY) + dir * (f.reachBase + f.reachSwing * Math.sin(Math.PI * u));
+      // never let a label run off the canvas
+      if (side === 'left')  tipX = Math.max(tipX, f.sideMargin + btnW);
+      else                  tipX = Math.min(tipX, lay.viewBox.w - f.sideMargin - btnW);
+      const bendL = f.bendStart + (f.bendEnd - f.bendStart) * u;
+      return {
+        label, btnW, attachY, tip: [tipX, tipY],
+        bend: side === 'left' ? bendL : -bendL,
+        w: f.widthStart + (f.widthEnd - f.widthStart) * u,
+        start: [edge(attachY) + dir * 6, attachY]
+      };
+    });
+  }
+
+  splitTree() {
+    const L = this.level, lay = this.layout, t = lay.trunk, f = lay.fan;
+    const BTN_H = lay.button.height;
+    let wood = '', twigs = '', leaves = '', buttons = '';
+    const all = [];
+
+    const side = (name, options, live) => {
+      const labels = live
+        ? options.slice(0, f.maxOptionsPerSide)
+        : new Array(f.bareBranches).fill('');
+      const slots = this.splitSlots(name, labels);
+      slots.forEach(sl => {
+        all.push(sl);
+        const isLeft = name === 'left';
+        wood += `<path class="wood${live ? '' : ' bare'}" d="${taperedBranch(sl.start, sl.tip, sl.bend, sl.w)}"/>`;
+        const [c1, c2] = controlPoints(sl.start, sl.tip, sl.bend);
+        [0.45, 0.72].forEach((tt, k) => {
+          const p = cubic(sl.start, c1, c2, sl.tip, tt);
+          const off = (k % 2 ? 11 : -11);
+          leaves += isLeft
+            ? `<ellipse class="leaf${live ? '' : ' faded'}" cx="${p[0].toFixed(1)}" cy="${(p[1]+off).toFixed(1)}" rx="11" ry="6" transform="rotate(${off>0?24:-24} ${p[0].toFixed(1)} ${(p[1]+off).toFixed(1)})"/>`
+            : `<circle class="berry${live ? '' : ' faded'}" cx="${p[0].toFixed(1)}" cy="${(p[1]+off).toFixed(1)}" r="5"/>`;
+        });
+        if (!sl.label) return;
+
+        const w = sl.btnW;
+        const bx = isLeft ? sl.tip[0] - w : sl.tip[0];
+        const anchor = [isLeft ? bx + w : bx, sl.tip[1]];
+        twigs += `<path class="twig ${name}" data-twig="${esc(sl.label)}" d="${twig(sl.tip, anchor)}"/>`;
+        buttons += `
+          <g class="affix ${name}" data-${name}="${esc(sl.label)}" tabindex="0" role="button"
+             aria-pressed="false" aria-label="${name} ${esc(sl.label)}">
+            <rect x="${bx}" y="${sl.tip[1] - BTN_H/2}" width="${w}" height="${BTN_H}" rx="${BTN_H/2}"/>
+            <text x="${bx + w/2}" y="${sl.tip[1] + 1}">${esc(isLeft ? sl.label + '-' : '-' + sl.label)}</text>
+          </g>`;
+      });
+    };
+
+    side('left',  L.prefixOptions, this.needPrefix);
+    side('right', L.suffixOptions, this.needSuffix);
+
+    const trunkPath = `M ${t.topL} ${t.topY}
+      C ${t.topL-6} ${t.topY+140}, ${t.botL+10} ${t.botY-190}, ${t.botL} ${t.botY}
+      L ${t.botR} ${t.botY}
+      C ${t.botR-10} ${t.botY-190}, ${t.topR+6} ${t.topY+140}, ${t.topR} ${t.topY} Z`;
+
+    // grow the canvas if a tall fan pushes tips past the default frame
+    const ys = all.map(s => s.tip[1]);
+    const minY = Math.min(0, Math.min(...ys, t.topY) - BTN_H/2 - f.topMargin);
+    const maxY = Math.max(lay.viewBox.h, Math.max(...ys, t.botY) + BTN_H/2 + f.topMargin);
+
+    return `
+      <svg class="tree" preserveAspectRatio="xMidYMid meet" viewBox="0 ${minY} ${lay.viewBox.w} ${maxY - minY}" xmlns="http://www.w3.org/2000/svg">
+        ${this.defs(trunkPath)}
+        <ellipse class="ground" cx="500" cy="562" rx="230" ry="20"/>
+        <g>${wood}</g><g>${leaves}</g>
+        <path class="trunk" d="${trunkPath}"/>
+        <g clip-path="url(#trunkClip)">
+          <path class="grain" d="M 430 130 C 418 250, 424 400, 408 560"/>
+          <path class="grain" d="M 500 130 C 494 260, 502 420, 494 560"/>
+          <path class="grain" d="M 566 130 C 578 250, 572 400, 590 560"/>
+        </g>
+        <text class="word" x="500" y="${t.wordY}"
+              font-size="${pickFont(lay.wordFontSizes, (L.root||'').length)}">${esc(L.root)}</text>
+        <g>${twigs}</g><g>${buttons}</g>
+      </svg>`;
+  }
+
+  /* =========================================================
+     TREE 2 — full tree. Options are packed into rows sized to
+     the labels, so any number of options fits.
+     ========================================================= */
+  canopySlots(labels) {
+    const lay = this.layout, f = lay.fan;
+    const cx = lay.viewBox.w / 2;
+    const N = labels.length;
+    if (!N) return [];
+
+    const widths = labels.map(l => this.btnWidth(l));
+    const avail = lay.viewBox.w - 2 * f.sideMargin;
+    const perRow = Math.max(1, Math.min(f.maxPerRow,
+      Math.floor((avail + f.columnGap) / (Math.max(...widths) + f.columnGap))));
+
+    const rows = Math.ceil(N / perRow);
+    const base = Math.floor(N / rows), rem = N % rows;
+    // smaller rows first so the canopy narrows towards the top
+    const counts = Array.from({ length: rows }, (_, r) => base + (r >= rows - rem ? 1 : 0));
+
+    const out = [];
+    let idx = 0;
+    counts.forEach((cnt, r) => {
+      const slice = widths.slice(idx, idx + cnt);
+      const rowW = slice.reduce((a, b) => a + b, 0) + (cnt - 1) * f.columnGap;
+      let x = cx - rowW / 2;
+      const y = f.bottomY - (rows - 1 - r) * f.rowSpacing;
+      for (let k = 0; k < cnt; k++) {
+        const w = widths[idx];
+        out.push({ label: labels[idx], btnW: w, at: [x + w / 2, y], row: r, rows });
+        x += w + f.columnGap;
+        idx++;
+      }
+    });
+    return out;
+  }
+
+  canopyTree() {
+    const L = this.level, lay = this.layout, t = lay.trunk, P = lay.plaque, f = lay.fan;
+    const BTN_H = lay.button.height;
+    const cx = lay.viewBox.w / 2;
+    const slots = this.canopySlots(L.options.slice(0, f.maxOptions));
+    let wood = '', twigs = '', leaves = '', buttons = '';
+
+    slots.forEach((sl, i) => {
+      const dir = sl.at[0] === cx ? (i % 2 ? 1 : -1) : Math.sign(sl.at[0] - cx);
+      const away = Math.abs(sl.at[0] - cx) / (lay.viewBox.w / 2);
+      const from = [cx + dir * Math.min(f.forkSpread, 8 + away * f.forkSpread), t.topY + 6];
+      const attach = [sl.at[0], sl.at[1] + 30];
+      const bend = dir * (f.bendBase + f.bendSwing * away);
+      const bw = f.widthStart + (f.widthEnd - f.widthStart) * (sl.rows > 1 ? sl.row / (sl.rows - 1) : 0);
+
+      wood += `<path class="wood" d="${taperedBranch(from, attach, bend, bw)}"/>`;
+      const [c1, c2] = controlPoints(from, attach, bend);
+      [0.42, 0.68, 0.88].forEach((tt, k) => {
+        const p = cubic(from, c1, c2, attach, tt);
+        const off = (k % 2 ? 12 : -12);
+        leaves += `<ellipse class="leaf" cx="${p[0].toFixed(1)}" cy="${(p[1]+off).toFixed(1)}"
+                    rx="12" ry="6.5" transform="rotate(${off>0?28:-28} ${p[0].toFixed(1)} ${(p[1]+off).toFixed(1)})"/>`;
+      });
+
+      const w = sl.btnW, bx = sl.at[0] - w/2, by = sl.at[1] - BTN_H/2;
+      twigs += `<path class="twig canopy" data-twig="${esc(sl.label)}" d="${twig(attach, [sl.at[0], by + BTN_H])}"/>`;
+      buttons += `
+        <g class="affix choice" data-choice="${esc(sl.label)}" tabindex="0" role="button"
+           aria-pressed="false" aria-label="option ${esc(sl.label)}">
+          <rect x="${bx}" y="${by}" width="${w}" height="${BTN_H}" rx="${BTN_H/2}"/>
+          <text x="${sl.at[0]}" y="${sl.at[1] + 1}">${esc(sl.label)}</text>
+        </g>`;
+    });
+
+    // foliage is fitted to whatever shape the options ended up making
+    const xs = slots.map(s => s.at[0]), ys = slots.map(s => s.at[1]);
+    const box = {
+      l: Math.min(...xs.map((x,i)=>x - slots[i].btnW/2)),
+      r: Math.max(...xs.map((x,i)=>x + slots[i].btnW/2)),
+      t: Math.min(...ys) - BTN_H/2,
+      b: Math.max(...ys) + BTN_H/2
+    };
+    const bcx = (box.l + box.r)/2, bcy = (box.t + box.b)/2;
+    const hw = (box.r - box.l)/2 + lay.foliagePadding;
+    const hh = (box.b - box.t)/2 + lay.foliagePadding;
+    const foliage = lay.foliage.map(fo =>
+      `<ellipse class="blob" cx="${(bcx + fo.dx*hw*2).toFixed(1)}" cy="${(bcy + fo.dy*hh*2).toFixed(1)}"
+                rx="${(hw*fo.sx).toFixed(1)}" ry="${(hh*fo.sy).toFixed(1)}"
+                fill="${this.config.theme.foliage[fo.shade] || this.config.theme.green}" opacity="${fo.opacity}"/>`
+    ).join('');
+
+    const trunkPath = `M ${cx-t.topHW} ${t.topY}
+      C ${cx-t.topHW-10} ${t.topY+80}, ${cx-t.botHW+12} ${t.botY-120}, ${cx-t.botHW} ${t.botY}
+      L ${cx+t.botHW} ${t.botY}
+      C ${cx+t.botHW-12} ${t.botY-120}, ${cx+t.topHW+10} ${t.topY+80}, ${cx+t.topHW} ${t.topY} Z`;
+
+    const roots = `
+      <path class="wood" d="M ${cx-t.botHW+6} ${t.botY-30} C ${cx-t.botHW-24} ${t.botY-6}, ${cx-t.botHW-t.rootFlare} ${t.botY-2}, ${cx-t.botHW-t.rootFlare-14} ${t.botY+6}
+                            L ${cx-t.botHW-t.rootFlare+6} ${t.botY+16} C ${cx-t.botHW-16} ${t.botY+8}, ${cx-t.botHW+2} ${t.botY+12}, ${cx-t.botHW+18} ${t.botY+14} Z"/>
+      <path class="wood" d="M ${cx+t.botHW-6} ${t.botY-30} C ${cx+t.botHW+24} ${t.botY-6}, ${cx+t.botHW+t.rootFlare} ${t.botY-2}, ${cx+t.botHW+t.rootFlare+14} ${t.botY+6}
+                            L ${cx+t.botHW+t.rootFlare-6} ${t.botY+16} C ${cx+t.botHW+16} ${t.botY+8}, ${cx+t.botHW-2} ${t.botY+12}, ${cx+t.botHW-18} ${t.botY+14} Z"/>`;
+
+    const shown = this._choice || '';
+    const plaque = `
+      <g class="plaque ${shown ? 'filled' : ''}">
+        <rect class="plaque-back" x="${cx - P.width/2}" y="${P.y - P.height/2}" width="${P.width}" height="${P.height}" rx="16"/>
+        <rect class="plaque-face" x="${cx - P.width/2 + 9}" y="${P.y - P.height/2 + 9}" width="${P.width - 18}" height="${P.height - 18}" rx="10"/>
+        <circle class="nail" cx="${cx - P.width/2 + 18}" cy="${P.y - P.height/2 + 17}" r="3.5"/>
+        <circle class="nail" cx="${cx + P.width/2 - 18}" cy="${P.y - P.height/2 + 17}" r="3.5"/>
+        <circle class="nail" cx="${cx - P.width/2 + 18}" cy="${P.y + P.height/2 - 17}" r="3.5"/>
+        <circle class="nail" cx="${cx + P.width/2 - 18}" cy="${P.y + P.height/2 - 17}" r="3.5"/>
+        <text class="plaque-text ${shown ? '' : 'empty'}" x="${cx}" y="${P.y + 2}"
+              font-size="${shown ? pickFont(lay.plaqueFontSizes, shown.length) : 34}">${esc(shown || '?')}</text>
+      </g>`;
+
+    // the canvas grows upward when the canopy needs more rows
+    const minY = Math.min(0, box.t - f.topMargin - lay.foliagePadding * 0.5);
+    const maxY = t.botY + 46;
+
+    return `
+      <svg class="tree" preserveAspectRatio="xMidYMid meet" viewBox="0 ${minY.toFixed(1)} ${lay.viewBox.w} ${(maxY - minY).toFixed(1)}" xmlns="http://www.w3.org/2000/svg">
+        ${this.defs(trunkPath)}
+        <ellipse class="ground" cx="${cx}" cy="${t.botY + 18}" rx="220" ry="20"/>
+        <g>${foliage}</g>
+        <g>${wood}</g>
+        ${roots}
+        <g>${leaves}</g>
+        <path class="trunk" d="${trunkPath}"/>
+        <g clip-path="url(#trunkClip)">
+          <path class="grain" d="M ${cx-24} ${t.topY+10} C ${cx-32} ${t.topY+90}, ${cx-40} ${t.botY-120}, ${cx-48} ${t.botY}"/>
+          <path class="grain" d="M ${cx+2} ${t.topY+10} C ${cx-2} ${t.topY+90}, ${cx+4} ${t.botY-120}, ${cx} ${t.botY}"/>
+          <path class="grain" d="M ${cx+26} ${t.topY+10} C ${cx+34} ${t.topY+90}, ${cx+42} ${t.botY-120}, ${cx+50} ${t.botY}"/>
+        </g>
+        ${plaque}
+        <g>${twigs}</g><g>${buttons}</g>
+      </svg>`;
+  }
+
+  defs(trunkPath) {
+    return `
+      <defs>
+        <linearGradient id="bark" x1="0" y1="0" x2="1" y2="0">
+          ${this.config.theme.barkGradient.map((c,i,a) =>
+            `<stop offset="${Math.round(i/(a.length-1)*100)}%" stop-color="${c}"/>`).join('')}
+        </linearGradient>
+        <clipPath id="trunkClip"><path d="${trunkPath}"/></clipPath>
+      </defs>`;
+  }
+
+  /* ---------- clue text ---------- */
+  clueText() {
+    const L = this.level, md = this.modeDef;
+    return tpl(md.clueTemplate, { definition: L.definition, word: L.word, root: L.root });
+  }
+
+  /* ---------- styles ---------- */
+  styles() {
+    const t = this.config.theme;
+    return `
+      :host{display:block;height:100%;font-family:'Inter',system-ui,sans-serif;
+        --bark:${t.bark}; --bark-dark:${t.barkDark}; --bark-light:${t.barkLight};
+        --green:${t.green}; --green-deep:${t.greenDeep}; --green-soft:${t.greenSoft};
+        --coral:${t.coral}; --coral-soft:${t.coralSoft};
+        --paper:${t.paper}; --ink:${t.ink}; --muted:${t.muted};
+        --wrong:${t.wrong}; --warn:${t.warn};}
+      *{box-sizing:border-box}
+
+      /* one screen, no scrolling: the tree takes whatever height is left */
+      .wrap{height:100%;max-width:1180px;margin:0 auto;background:var(--paper);
+        border-radius:18px;box-shadow:0 14px 40px rgba(58,45,30,.10);
+        padding:clamp(10px,1.6vh,20px) clamp(14px,2vw,26px);
+        display:flex;flex-direction:column;gap:clamp(6px,1.1vh,12px);overflow:hidden}
+
+      .topbar{display:flex;align-items:center;gap:12px;flex:0 0 auto;flex-wrap:wrap}
+      .brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+      h1{font-family:'Fraunces',serif;font-weight:800;color:var(--green-deep);margin:0;
+        letter-spacing:-.01em;font-size:clamp(1.05rem,2.3vh,1.5rem);white-space:nowrap}
+      .tag{font-size:clamp(.6rem,1.2vh,.72rem);letter-spacing:.12em;text-transform:uppercase;
+        color:var(--muted);font-weight:600;white-space:nowrap}
+      .modes{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+      .mode-btn{border:2px solid #CBBBA0;background:#fff;color:var(--green-deep);font:inherit;
+        font-weight:700;font-size:clamp(.74rem,1.5vh,.88rem);padding:clamp(5px,.9vh,9px) clamp(10px,1.4vw,17px);
+        border-radius:9px;cursor:pointer;transition:all .2s;white-space:nowrap}
+      .mode-btn:hover{border-color:var(--green-deep);background:#F2EADC}
+      .mode-btn.active{background:var(--green-deep);color:#fff;border-color:var(--green-deep)}
+      .meta{display:flex;align-items:center;gap:10px}
+      .progress{font-size:clamp(.74rem,1.5vh,.86rem);color:var(--muted);font-weight:600;white-space:nowrap}
+      .name-field{border:2px solid #E6DCC9;border-radius:8px;padding:5px 9px;font:inherit;
+        font-size:.82rem;color:var(--ink);background:#fff;width:clamp(90px,10vw,140px)}
+      .name-field:focus{outline:none;border-color:var(--green)}
+
+      .clue{flex:0 0 auto;background:var(--green-deep);color:#F2F6EE;border-radius:12px;
+        padding:clamp(9px,1.4vh,15px) clamp(14px,1.8vw,22px);
+        font-family:'Fraunces',serif;font-size:clamp(.95rem,2.1vh,1.2rem);line-height:1.4}
+      .clue .lbl{display:block;font-family:'Inter',sans-serif;font-size:clamp(.58rem,1.1vh,.7rem);
+        letter-spacing:.14em;text-transform:uppercase;opacity:.6;font-weight:600;margin-bottom:5px}
+      .clue .sub{display:block;font-family:'Inter',sans-serif;font-size:clamp(.74rem,1.5vh,.86rem);
+        opacity:.72;font-weight:500;margin-top:5px;line-height:1.4}
+
+      /* the tree scales to the space available rather than dictating it */
+      .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+      svg.tree{width:100%;height:100%;display:block}
+
+      .footer{flex:0 0 auto;display:flex;flex-direction:column;gap:clamp(4px,.8vh,8px)}
+      .row1{display:flex;gap:10px;align-items:stretch}
+      .row2{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:16px}
+
+      .preview{flex:1 1 auto;background:#F2EADC;border:2px dashed #CBBBA0;border-radius:12px;
+        padding:clamp(6px,1vh,12px) 18px;font-family:'Fraunces',serif;font-weight:800;color:var(--ink);
+        text-align:center;display:flex;align-items:center;justify-content:center;
+        font-size:clamp(1.05rem,2.6vh,1.6rem);line-height:1.1}
+      .preview .pf,.preview .sf{color:var(--green)}
+      .preview .empty{color:#C3B49A}
+
+      button.cta{border:0;border-radius:11px;background:var(--green-deep);color:#fff;font:inherit;
+        font-weight:700;font-size:clamp(.84rem,1.8vh,1rem);padding:0 clamp(18px,2.4vw,32px);
+        cursor:pointer;transition:background .2s,transform .15s;white-space:nowrap}
+      button.cta:hover:not(:disabled){background:var(--green);transform:translateY(-2px)}
+      button.ghost{background:transparent;color:var(--green-deep);border:2px solid #CBBBA0;border-radius:11px;
+        font:inherit;font-weight:700;font-size:.88rem;padding:11px 20px;cursor:pointer;transition:all .2s}
+      button.ghost:hover{border-color:var(--green-deep);background:#F2EADC}
+
+      .feedback{margin:0;font-size:clamp(.8rem,1.6vh,.95rem);font-weight:600;flex:1;min-width:0}
+      .feedback.good{color:var(--green)} .feedback.bad{color:var(--coral)} .feedback.warn{color:var(--warn)}
+      .attempts{font-size:clamp(.68rem,1.3vh,.78rem);color:var(--muted);font-weight:600;white-space:nowrap}
+      .explain{font-size:clamp(.76rem,1.5vh,.9rem);line-height:1.45;color:#5C5348;background:#F2EADC;
+        border-radius:10px;padding:8px 14px;max-height:clamp(38px,8vh,74px);overflow:auto}
+
+      /* ---- tree paint ---- */
+      .wood{fill:var(--bark)}
+      .wood.bare{opacity:.45}
+      .trunk{fill:url(#bark)}
+      .grain{stroke:var(--bark-dark);stroke-width:2;fill:none;opacity:.28;stroke-linecap:round}
+      .ground{fill:var(--bark-dark);opacity:.12}
+      .leaf{fill:var(--green);opacity:.5}
+      .berry{fill:var(--coral);opacity:.5}
+      .leaf.faded,.berry.faded{opacity:.22}
+      .twig{fill:none;stroke:var(--bark-light);stroke-width:3;stroke-linecap:round;opacity:.55;
+        transition:stroke .25s,stroke-width .25s,opacity .25s}
+      .twig.active{stroke-width:6;opacity:1;stroke:var(--green)}
+      .twig.right.active{stroke:var(--coral)}
+
+      .affix{cursor:pointer;outline:none}
+      .affix rect{fill:#fff;stroke:var(--green-soft);stroke-width:2;transition:fill .22s,stroke .22s,filter .22s}
+      .affix text{font-family:'Inter',sans-serif;font-size:19px;font-weight:700;fill:var(--green);
+        text-anchor:middle;dominant-baseline:middle;pointer-events:none;transition:fill .22s}
+      .affix:hover rect{stroke:var(--green);filter:drop-shadow(0 3px 6px rgba(0,0,0,.14))}
+      .affix:focus-visible rect{stroke:var(--ink);stroke-width:3}
+      .affix.active rect{fill:var(--green);stroke:var(--green)}
+      .affix.active text{fill:#fff}
+      .affix.wrong rect{fill:var(--wrong);stroke:var(--wrong)}
+      .affix.wrong text{fill:#fff}
+      .affix.reveal rect{fill:#fff;stroke:var(--green);stroke-width:4;stroke-dasharray:7 5}
+      .affix.reveal text{fill:var(--green)}
+
+      .word{font-family:'Fraunces',serif;font-weight:800;fill:#FBF6EA;text-anchor:middle;dominant-baseline:middle}
+      .plaque-back{fill:var(--bark-dark)}
+      .plaque-face{fill:#F4EAD6}
+      .plaque .nail{fill:var(--bark-light);opacity:.9}
+      .plaque-text{font-family:'Fraunces',serif;font-weight:800;fill:var(--green-deep);
+        text-anchor:middle;dominant-baseline:middle}
+      .plaque-text.empty{fill:#C3B49A}
+
+      /* ---- summary ---- */
+      .sum-head{flex:0 0 auto;text-align:center}
+      .cards{flex:0 0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
+        gap:9px;margin-top:4px}
+      .cardk{background:#F2EADC;border-radius:12px;padding:clamp(8px,1.3vh,15px) 12px;text-align:center}
+      .cardk .k{font-size:clamp(.56rem,1.1vh,.64rem);letter-spacing:.14em;text-transform:uppercase;
+        color:var(--muted);font-weight:700;margin-bottom:4px}
+      .cardk .v{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(1.1rem,2.6vh,1.6rem);color:var(--green-deep)}
+      .sum-scroll{flex:1 1 auto;min-height:0;overflow:auto;margin-top:4px}
+      table{width:100%;border-collapse:collapse;font-size:clamp(.74rem,1.5vh,.87rem)}
+      th{text-align:left;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+        font-weight:700;padding:0 8px 7px;border-bottom:2px solid #E6DCC9;
+        position:sticky;top:0;background:var(--paper)}
+      td{padding:8px;border-bottom:1px solid #EFE6D5;vertical-align:top}
+      td.ok{color:var(--green);font-weight:700} td.no{color:var(--coral);font-weight:700}
+      .given{color:var(--muted);font-size:.78rem}
+      .sum-actions{flex:0 0 auto;display:flex;gap:9px;justify-content:center;padding-top:10px;flex-wrap:wrap}
+
+      @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+      .shake{animation:shake .35s ease-in-out}
+      @keyframes bloom{0%{filter:none}45%{filter:drop-shadow(0 0 26px rgba(101,160,70,.55))}100%{filter:none}}
+      .bloom{animation:bloom 1s ease-out}
+      @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+      /* below this the layout stops trying to fit and simply scrolls */
+      @media (max-width:760px),(max-height:480px){
+        :host{height:auto}
+        .wrap{height:auto;overflow:visible}
+        .stage{min-height:46vh}
+        .modes{margin-left:0;width:100%}
+        .row1{flex-direction:column}
+        button.cta{padding:14px 20px}
+      }`;
+  }
+
+  /* ---------- render ---------- */
+  render() {
+    if (this.finished) return this.renderSummary();
+    if (!this.level) return this.renderMessage('No questions found for this mode.');
+    this.openRecord();
+
+    const L = this.level, md = this.modeDef;
+    const sub = md.subField && L[md.subField]
+      ? `<span class="sub">${esc(L[md.subField])}</span>` : '';
+    const nameField = this.config.results.collectStudentName
+      ? `<input class="name-field" id="student" placeholder="Your name" value="${esc(this.studentName)}">` : '';
+
+    this.shadowRoot.innerHTML = `
+      <style>${this.styles()}</style>
+      <div class="wrap">
+        <div class="topbar">
+          <div class="brand">
+            <h1>${esc(md.label)}</h1>
+            <span class="tag">${esc(md.tagline || '')}</span>
+          </div>
+          <div class="modes">
+            ${this.config.modes.map(m =>
+              `<button class="mode-btn ${m.id===this.mode?'active':''}" data-mode="${m.id}">${esc(m.label)}</button>`).join('')}
+          </div>
+          <div class="meta">${nameField}
+            <span class="progress">${this.levelIndex+1} / ${this.levels.length}</span>
+          </div>
+        </div>
+
+        <div class="clue">
+          <span class="lbl">${esc(md.clueLabel)}${this.isSingle ? '' : ' · ' + esc(this.requiresLabel())}</span>
+          ${esc(this.clueText())}${sub}
+        </div>
+
+        <div class="stage">${md.tree === 'canopy' ? this.canopyTree() : this.splitTree()}</div>
+
+        <div class="footer">
+          <div class="row1">
+            <div class="preview" id="preview"></div>
+            <button class="cta" id="check">Check answer</button>
+          </div>
+          <div class="row2">
+            <p class="feedback" id="feedback"></p>
+            <span class="attempts" id="attempts"></span>
+          </div>
+          <div id="explain"></div>
+        </div>
+      </div>`;
+
+    this.shadowRoot.querySelectorAll('.mode-btn').forEach(b =>
+      b.addEventListener('click', e => this.switchMode(e.target.dataset.mode)));
+
+    ['left','right','choice'].forEach(kind => {
+      this.shadowRoot.querySelectorAll(`[data-${kind}]`).forEach(g => {
+        const act = () => this.select(kind, g.dataset[kind]);
+        g.addEventListener('click', act);
+        g.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); }
+        });
+      });
+    });
+
+    const name = this.shadowRoot.getElementById('student');
+    if (name) name.addEventListener('input', e => {
+      this.studentName = e.target.value;
+      this.session.session.student.name = this.studentName;
+    });
+
+    this.shadowRoot.getElementById('check').addEventListener('click', () => this.check());
+    this.updatePreview();
+    this.updateAttempts();
+  }
+
+  requiresLabel() {
+    return { prefix: 'add a prefix', suffix: 'add a suffix', both: 'add both' }[this.level.requires] || '';
+  }
+
+  renderSummary() {
+    const data = this.summarise(), s = data.summary;
+    const answerText = a => a.answerType === 'single'
+      ? esc(a.expected.choice)
+      : [a.expected.prefix ? a.expected.prefix + '-' : '', a.word, a.expected.suffix ? '-' + a.expected.suffix : '']
+          .filter(Boolean).join(' ');
+    const gaveText = a => {
+      const f = a.finalAnswer || {};
+      return a.answerType === 'single'
+        ? esc(f.choice || '—')
+        : `${f.prefix ? f.prefix+'-' : ''}${a.word}${f.suffix ? '-'+f.suffix : ''}`;
+    };
+    const rows = data.answers.map(a => `
+      <tr>
+        <td>${a.order}</td>
+        <td><b>${esc(a.target)}</b><div class="given">${esc(a.prompt)}</div></td>
+        <td class="${a.correct?'ok':'no'}">${a.correct ? (a.firstTry ? 'First try' : 'Correct') : 'Missed'}</td>
+        <td>${a.attemptCount}</td>
+        <td>${fmtMs(a.timeTakenMs)}</td>
+        <td>${answerText(a)}${a.correct ? '' : `<div class="given">gave: ${gaveText(a)}</div>`}</td>
+        <td>${a.score}</td>
+      </tr>`).join('');
+
+    this.shadowRoot.innerHTML = `
+      <style>${this.styles()}</style>
+      <div class="wrap">
+        <div class="sum-head">
+          <h1>${esc(this.config.feedback.roundComplete)}</h1>
+          <span class="tag">${esc(this.modeDef.label)}${this.studentName ? ' · ' + esc(this.studentName) : ''}</span>
+        </div>
+        <div class="cards">
+          <div class="cardk"><div class="k">Score</div><div class="v">${s.score}<span style="font-size:.9rem;color:#8A8073">/${s.maxScore}</span></div></div>
+          <div class="cardk"><div class="k">Correct</div><div class="v">${s.correct}/${s.attempted}</div></div>
+          <div class="cardk"><div class="k">First try</div><div class="v">${s.firstTryCorrect}</div></div>
+          <div class="cardk"><div class="k">Accuracy</div><div class="v">${s.accuracyPct}%</div></div>
+          <div class="cardk"><div class="k">Total time</div><div class="v">${fmtMs(s.totalTimeMs)}</div></div>
+          <div class="cardk"><div class="k">Avg / question</div><div class="v">${fmtMs(s.averageTimePerQuestionMs)}</div></div>
+        </div>
+        <div class="sum-scroll">
+          <table>
+            <thead><tr><th>#</th><th>Word</th><th>Result</th><th>Tries</th><th>Time</th><th>Answer</th><th>Pts</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div class="sum-actions">
+          <button class="cta" id="dl">Download results.json</button>
+          <button class="ghost" id="again">Play this set again</button>
+          <button class="ghost" id="next-mode">Next mode</button>
+        </div>
+      </div>`;
+
+    this.shadowRoot.getElementById('dl').addEventListener('click', () => this.downloadResults());
+    this.shadowRoot.getElementById('again').addEventListener('click', () => this.restart(this.mode));
+    this.shadowRoot.getElementById('next-mode').addEventListener('click', () => {
+      const ids = this.config.modes.map(m => m.id);
+      this.restart(ids[(ids.indexOf(this.mode) + 1) % ids.length]);
+    });
+    this.postResults();
+  }
+
+  /* ---------- interaction ---------- */
+  select(kind, value) {
+    if (this.solved || this.closed) return;
+    if (kind === 'left') this._prefix = value;
+    else if (kind === 'right') this._suffix = value;
+    else this._choice = value;
+
+    this.shadowRoot.querySelectorAll(`[data-${kind}]`).forEach(g => {
+      const on = g.dataset[kind] === value;
+      g.classList.toggle('active', on);
+      g.classList.remove('wrong');
+      g.setAttribute('aria-pressed', on);
+    });
+    const twigSel = kind === 'choice' ? '.twig.canopy' : `.twig.${kind}`;
+    this.shadowRoot.querySelectorAll(twigSel)
+      .forEach(p => p.classList.toggle('active', p.dataset.twig === value));
+
+    if (kind === 'choice') this.updatePlaque(value);
+    this.updatePreview();
+    this.setFeedback('', '');
+  }
+
+  updatePlaque(word) {
+    const g = this.shadowRoot.querySelector('.plaque');
+    const txt = this.shadowRoot.querySelector('.plaque-text');
+    if (!txt) return;
+    txt.textContent = word || '?';
+    txt.classList.toggle('empty', !word);
+    txt.setAttribute('font-size', word
+      ? pickFont(this.layout.plaqueFontSizes, word.length) : 34);
+    g?.classList.toggle('filled', !!word);
+  }
+
+  updatePreview() {
+    const L = this.level, el = this.shadowRoot.getElementById('preview');
+    if (!el) return;
+    if (this.isSingle) {
+      el.innerHTML = this._choice
+        ? `<span class="pf">${esc(this._choice)}</span>`
+        : `<span class="empty">pick a word</span>`;
+    } else {
+      el.innerHTML =
+        `<span class="pf">${esc(this._prefix)}</span>` +
+        `<span>${esc(L.root)}</span>` +
+        `<span class="sf">${esc(this._suffix)}</span>`;
+    }
+  }
+
+  updateAttempts() {
+    const el = this.shadowRoot.getElementById('attempts');
+    if (!el || !this.record) return;
+    const max = this.config.rules.maxAttemptsPerQuestion;
+    el.textContent = max > 0
+      ? `Attempt ${Math.min(this.record.attemptCount + 1, max)} of ${max}`
+      : `Attempts: ${this.record.attemptCount}`;
+  }
+
+  setFeedback(text, cls) {
+    const el = this.shadowRoot.getElementById('feedback');
+    if (el) { el.textContent = text; el.className = 'feedback ' + cls; }
+  }
+
+  showExplanation() {
+    const el = this.shadowRoot.getElementById('explain');
+    if (el && this.level.explanation) el.innerHTML = `<div class="explain">${esc(this.level.explanation)}</div>`;
+  }
+
+  check() {
+    if (this.solved || this.closed) return;
+    const L = this.level, F = this.config.feedback;
+
+    // completeness
+    if (this.isSingle && !this._choice) { this.setFeedback(F.needChoice, 'warn'); return this.shake(); }
+    if (!this.isSingle) {
+      if (this.needPrefix && this.needSuffix && (!this._prefix || !this._suffix)) {
+        this.setFeedback(F.needBoth, 'warn'); return this.shake();
+      }
+      if (this.needPrefix && !this._prefix) { this.setFeedback(F.needPrefix, 'warn'); return this.shake(); }
+      if (this.needSuffix && !this._suffix) { this.setFeedback(F.needSuffix, 'warn'); return this.shake(); }
+    }
+
+    let correct, chosen, parts;
+    if (this.isSingle) {
+      chosen = { choice: this._choice };
+      correct = this._choice === L.answer;
+      parts = { choice: correct };
+    } else {
+      const pOK = !this.needPrefix || this._prefix === L.validPrefix;
+      const sOK = !this.needSuffix || this._suffix === L.validSuffix;
+      chosen = { prefix: this._prefix || null, suffix: this._suffix || null };
+      parts = { prefix: pOK, suffix: sOK };
+      correct = pOK && sOK;
+    }
+
+    const r = this.record;
+    r.attemptCount++;
+    const ms = Math.round(performance.now() - r._t0);
+    if (r.attemptCount === 1) r.timeToFirstAttemptMs = ms;
+    r.attempts.push({ n: r.attemptCount, chosen, parts, correct, msSinceShown: ms, at: new Date().toISOString() });
+    r.finalAnswer = chosen;
+
+    if (correct) {
+      this.solved = true;
+      this.closeRecord('correct');
+      this.setFeedback(this.isSingle
+        ? tpl(F.correctSingle, { answer: L.answer })
+        : tpl(F.correctAffix, { target: L.target }), 'good');
+      this.shadowRoot.querySelector('.stage')?.classList.add('bloom');
+      this.showExplanation();
+      this.advanceButton();
+    } else if (r.attemptCount >= this.maxAttempts) {
+      this.closeRecord('out-of-attempts');
+      this.setFeedback(this.isSingle
+        ? tpl(F.outOfAttemptsSingle, { answer: L.answer })
+        : tpl(F.outOfAttemptsAffix, { target: L.target }), 'bad');
+      this.markWrong();
+      if (this.config.rules.revealAnswerWhenAttemptsRunOut) this.revealAnswer();
+      this.showExplanation();
+      this.shake();
+      this.advanceButton();
+    } else {
+      const left = this.maxAttempts - r.attemptCount;
+      this.setFeedback(left === 1 && F.lastAttempt ? F.lastAttempt
+        : (this.isSingle ? F.incorrect : F.incorrectAffix), 'bad');
+      this.markWrong();
+      this.shake();
+    }
+    this.updateAttempts();
+    this.saveLocal();
+  }
+
+  mark(sel, cls) { this.shadowRoot.querySelector(sel)?.classList.add(cls); }
+
+  markWrong() {
+    const L = this.level;
+    if (this.isSingle) {
+      if (this._choice !== L.answer) this.mark(`[data-choice="${CSS.escape(this._choice)}"]`, 'wrong');
+    } else {
+      if (this.needPrefix && this._prefix !== L.validPrefix)
+        this.mark(`[data-left="${CSS.escape(this._prefix)}"]`, 'wrong');
+      if (this.needSuffix && this._suffix !== L.validSuffix)
+        this.mark(`[data-right="${CSS.escape(this._suffix)}"]`, 'wrong');
+    }
+  }
+
+  revealAnswer() {
+    const L = this.level;
+    if (this.isSingle) {
+      this.mark(`[data-choice="${CSS.escape(L.answer)}"]`, 'reveal');
+      this.updatePlaque(L.answer);
+    } else {
+      if (this.needPrefix) this.mark(`[data-left="${CSS.escape(L.validPrefix)}"]`, 'reveal');
+      if (this.needSuffix) this.mark(`[data-right="${CSS.escape(L.validSuffix)}"]`, 'reveal');
+    }
+  }
+
+  advanceButton() {
+    const btn = this.shadowRoot.getElementById('check');
+    if (!btn) return;
+    btn.textContent = this.levelIndex >= this.levels.length - 1 ? 'See results' : 'Next question';
+    btn.onclick = () => this.nextLevel();
+  }
+
+  nextLevel() {
+    if (this.levelIndex >= this.levels.length - 1) { this.finished = true; return this.renderSummary(); }
+    this.levelIndex++;
+    this.resetQuestionState();
+    this.render();
+  }
+
+  shake() {
+    const el = this.shadowRoot.querySelector('.stage');
+    if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+  }
+
+  switchMode(mode) { if (mode !== this.mode) this.restart(mode); }
+
+  restart(mode) {
+    this.mode = mode;
+    this.newSession();
+    this.session.session.mode = mode;
+    this.loadMode(mode);
+    this.render();
+  }
+}
+customElements.define('affix-game', AffixGame);
+</script>
+</body>
+</html>

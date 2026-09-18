@@ -1,0 +1,559 @@
+{
+  "schemaVersion": "2.0",
+  "meta": {
+    "title": "Affix Tree — default question bank",
+    "author": "",
+    "updated": "2026-09-06",
+    "howToEdit": {
+      "affix": [
+        "root is the word shown on the trunk; target is the finished word.",
+        "requires is \"prefix\", \"suffix\" or \"both\" — it decides which sides of the tree are live.",
+        "validPrefix + root + validSuffix must spell target exactly. Use null for a side that isn't needed.",
+        "Any number of options per side up to layouts.split.fan.maxOptionsPerSide — the branches are generated to fit."
+      ],
+      "synonyms/antonyms": [
+        "word is the word being matched, shown inside the question.",
+        "answer is the single correct option and must appear in options.",
+        "Any number of options up to layouts.canopy.fan.maxOptions — the canopy packs them into rows and grows to fit.",
+        "Good distractors are near-misses. The trunk stays blank; the pick appears on the plaque."
+      ]
+    }
+  },
+  "sets": {
+    "affix": [
+      {
+        "id": "aff-01",
+        "definition": "Not able to be seen.",
+        "root": "visible",
+        "target": "invisible",
+        "requires": "prefix",
+        "validPrefix": "in",
+        "validSuffix": null,
+        "prefixOptions": [
+          "in",
+          "un",
+          "re",
+          "dis",
+          "mis"
+        ],
+        "suffixOptions": [],
+        "explanation": "The prefix in- means “not”. It attaches to visible to give the opposite meaning."
+      },
+      {
+        "id": "aff-02",
+        "definition": "This is a test",
+        "root": "Test",
+        "target": "Testing",
+        "requires": "suffix",
+        "validPrefix": "null",
+        "validSuffix": "ing",
+        "prefixOptions": [
+          "in",
+          "un",
+          "re",
+          "dis",
+          "mis"
+        ],
+        "suffixOptions": ["ing","tion","ed","tition"],
+        "explanation": "The prefix in- means “not”. It attaches to visible to give the opposite meaning."
+      },
+      {
+        "id": "aff-03",
+        "definition": "To read something a second time.",
+        "root": "read",
+        "target": "reread",
+        "requires": "prefix",
+        "validPrefix": "re",
+        "validSuffix": null,
+        "prefixOptions": [
+          "re",
+          "un",
+          "dis"
+        ],
+        "suffixOptions": [],
+        "explanation": "The prefix re- means “again”, so rereading is reading a second time."
+      },
+      {
+        "id": "aff-04",
+        "definition": "Not able to happen or be done.",
+        "root": "possible",
+        "target": "impossible",
+        "requires": "prefix",
+        "validPrefix": "im",
+        "validSuffix": null,
+        "prefixOptions": [
+          "im",
+          "un",
+          "in",
+          "dis",
+          "non"
+        ],
+        "suffixOptions": [],
+        "explanation": "In- becomes im- before p, b and m — impossible, imbalance, immature."
+      },
+      {
+        "id": "aff-05",
+        "definition": "Without any hope at all.",
+        "root": "hope",
+        "target": "hopeless",
+        "requires": "suffix",
+        "validPrefix": null,
+        "validSuffix": "less",
+        "prefixOptions": [],
+        "suffixOptions": [
+          "less",
+          "ful",
+          "ness",
+          "ly"
+        ],
+        "explanation": "The suffix -less means “without”. Note that -ful would flip the meaning to the opposite."
+      },
+      {
+        "id": "aff-06",
+        "definition": "A person whose job is to help others learn.",
+        "root": "teach",
+        "target": "teacher",
+        "requires": "suffix",
+        "validPrefix": null,
+        "validSuffix": "er",
+        "prefixOptions": [],
+        "suffixOptions": [
+          "er",
+          "ing",
+          "ful",
+          "less",
+          "ness"
+        ],
+        "explanation": "The suffix -er turns an action into the person who does it: teach → teacher."
+      },
+      {
+        "id": "aff-07",
+        "definition": "The quality of being friendly and generous.",
+        "root": "kind",
+        "target": "kindness",
+        "requires": "suffix",
+        "validPrefix": null,
+        "validSuffix": "ness",
+        "prefixOptions": [],
+        "suffixOptions": [
+          "ness",
+          "ly",
+          "ful"
+        ],
+        "explanation": "The suffix -ness turns a describing word into the quality itself: kind → kindness."
+      },
+      {
+        "id": "aff-08",
+        "definition": "Not giving any useful help.",
+        "root": "help",
+        "target": "unhelpful",
+        "requires": "both",
+        "validPrefix": "un",
+        "validSuffix": "ful",
+        "prefixOptions": [
+          "un",
+          "re",
+          "pre",
+          "mis",
+          "dis"
+        ],
+        "suffixOptions": [
+          "ful",
+          "ness",
+          "ing",
+          "er",
+          "ment"
+        ],
+        "explanation": "Two pieces at once: -ful makes helpful, then un- turns it around to unhelpful."
+      },
+      {
+        "id": "aff-09",
+        "definition": "A situation where two people do not agree.",
+        "root": "agree",
+        "target": "disagreement",
+        "requires": "both",
+        "validPrefix": "dis",
+        "validSuffix": "ment",
+        "prefixOptions": [
+          "dis",
+          "un",
+          "re",
+          "in",
+          "mis"
+        ],
+        "suffixOptions": [
+          "ment",
+          "ful",
+          "less",
+          "ly",
+          "ness"
+        ],
+        "explanation": "Dis- reverses the verb, and -ment turns the verb into a thing: disagree → disagreement."
+      },
+      {
+        "id": "aff-09",
+        "definition": "Not feeling relaxed or at ease.",
+        "root": "comfort",
+        "target": "uncomfortable",
+        "requires": "both",
+        "validPrefix": "un",
+        "validSuffix": "able",
+        "prefixOptions": [
+          "un",
+          "dis",
+          "re",
+          "in"
+        ],
+        "suffixOptions": [
+          "able",
+          "ful",
+          "less",
+          "ment",
+          "ly",
+          "ness"
+        ],
+        "explanation": "-able means “can be”, and un- negates it: comfort → comfortable → uncomfortable."
+      },
+      {
+        "id": "aff-10",
+        "definition": "Impossible to break.",
+        "root": "break",
+        "target": "unbreakable",
+        "requires": "both",
+        "validPrefix": "un",
+        "validSuffix": "able",
+        "prefixOptions": [
+          "un",
+          "re",
+          "dis",
+          "mis"
+        ],
+        "suffixOptions": [
+          "able",
+          "ment",
+          "ing",
+          "er",
+          "ful"
+        ],
+        "explanation": "-able means “can be”, giving breakable. Then un- reverses it: unbreakable. (Roots ending in a silent e, like believe, would lose the e — avoid those pairs.)"
+      },
+      {
+        "id": "aff-11",
+        "definition": "A failure to understand something correctly.",
+        "root": "understand",
+        "target": "misunderstanding",
+        "requires": "both",
+        "validPrefix": "mis",
+        "validSuffix": "ing",
+        "prefixOptions": [
+          "mis",
+          "un",
+          "re"
+        ],
+        "suffixOptions": [
+          "ing",
+          "able",
+          "ment"
+        ],
+        "explanation": "Mis- means “wrongly”, and -ing turns the verb into the event itself."
+      },
+      {
+        "id": "aff-12",
+        "definition": "Not kind or welcoming towards other people.",
+        "root": "friend",
+        "target": "unfriendly",
+        "requires": "both",
+        "validPrefix": "un",
+        "validSuffix": "ly",
+        "prefixOptions": [
+          "un",
+          "dis",
+          "mis",
+          "re",
+          "in",
+          "non"
+        ],
+        "suffixOptions": [
+          "ly",
+          "ship",
+          "less",
+          "ful"
+        ],
+        "explanation": "-ly turns friend into a describing word, and un- flips its meaning."
+      },
+      {
+        "id": "aff-13",
+        "definition": "Showing rude behaviour towards someone.",
+        "root": "respect",
+        "target": "disrespectful",
+        "requires": "both",
+        "validPrefix": "dis",
+        "validSuffix": "ful",
+        "prefixOptions": [
+          "dis",
+          "un",
+          "im",
+          "re",
+          "mis"
+        ],
+        "suffixOptions": [
+          "ful",
+          "less",
+          "able",
+          "ment",
+          "ing",
+          "ly"
+        ],
+        "explanation": "Dis- reverses respect, and -ful means “full of” — full of disrespect."
+      },
+      {
+        "id": "aff-14",
+        "definition": "The quality of not telling the truth.",
+        "root": "honest",
+        "target": "dishonesty",
+        "requires": "both",
+        "validPrefix": "dis",
+        "validSuffix": "y",
+        "prefixOptions": [
+          "dis",
+          "un",
+          "in",
+          "mis"
+        ],
+        "suffixOptions": [
+          "y",
+          "ly",
+          "ness",
+          "ful"
+        ],
+        "explanation": "Two pieces at once: dis- makes dishonest, then -y turns it into the quality itself."
+      },
+      {
+        "id": "aff-15",
+        "definition": "Impossible to know what will happen next.",
+        "root": "predict",
+        "target": "unpredictable",
+        "requires": "both",
+        "validPrefix": "un",
+        "validSuffix": "able",
+        "prefixOptions": [
+          "un",
+          "re",
+          "mis",
+          "dis",
+          "non",
+          "im",
+          "in"
+        ],
+        "suffixOptions": [
+          "able",
+          "ion",
+          "ing",
+          "ment"
+        ],
+        "explanation": "Predictable means it can be predicted; un- says it cannot."
+      },
+      {
+        "id": "aff-16",
+        "definition": "The act of going out of sight.",
+        "root": "appear",
+        "target": "disappearance",
+        "requires": "both",
+        "validPrefix": "dis",
+        "validSuffix": "ance",
+        "prefixOptions": [
+          "dis",
+          "un",
+          "re",
+          "mis",
+          "pre"
+        ],
+        "suffixOptions": [
+          "ance",
+          "ing",
+          "ment",
+          "ful"
+        ],
+        "explanation": "Dis- reverses appear, and -ance turns the action into a noun."
+      }
+    ],
+    "synonyms": [
+      {
+        "id": "syn-01",
+        "word": "delighted",
+        "definition": "Very pleased and happy about something.",
+        "answer": "thrilled",
+        "options": [
+          "thrilled",
+          "furious",
+          "anxious",
+          "bored"
+        ],
+        "explanation": "Thrilled carries the same strong happiness as delighted."
+      },
+      {
+        "id": "syn-02",
+        "word": "enormous",
+        "definition": "Extremely large in size.",
+        "answer": "gigantic",
+        "options": [
+          "gigantic",
+          "tiny",
+          "narrow",
+          "slender",
+          "minor"
+        ],
+        "explanation": "Gigantic and enormous both describe something far beyond ordinary size."
+      },
+      {
+        "id": "syn-03",
+        "word": "brave",
+        "definition": "Willing to face danger without showing fear.",
+        "answer": "courageous",
+        "options": [
+          "courageous",
+          "fearful",
+          "timid",
+          "anxious",
+          "weary",
+          "gentle"
+        ],
+        "explanation": "Courageous is the closest match; cautious and gentle are mild, not brave."
+      },
+      {
+        "id": "syn-04",
+        "word": "quick",
+        "definition": "Moving or happening at speed.",
+        "answer": "rapid",
+        "options": [
+          "rapid",
+          "sluggish",
+          "gradual",
+          "steady",
+          "patient",
+          "delayed",
+          "idle"
+        ],
+        "explanation": "Rapid means the same as quick. Gradual and steady describe slow, even movement."
+      },
+      {
+        "id": "syn-05",
+        "word": "beautiful",
+        "definition": "Very pleasing to look at.",
+        "answer": "gorgeous",
+        "options": [
+          "gorgeous",
+          "hideous",
+          "plain",
+          "dull",
+          "drab",
+          "awkward",
+          "coarse",
+          "shabby"
+        ],
+        "explanation": "Gorgeous is a stronger way of saying beautiful; every other option works against it."
+      },
+      {
+        "id": "syn-06",
+        "word": "difficult",
+        "definition": "Needing a lot of effort or skill.",
+        "answer": "challenging",
+        "options": [
+          "challenging",
+          "simple",
+          "effortless"
+        ],
+        "explanation": "Challenging describes something that demands effort — the same idea as difficult."
+      }
+    ],
+    "antonyms": [
+      {
+        "id": "ant-01",
+        "word": "ancient",
+        "definition": "Belonging to the very distant past.",
+        "answer": "modern",
+        "options": [
+          "modern",
+          "elderly",
+          "aged",
+          "historic",
+          "antique",
+          "timeworn",
+          "vintage",
+          "olden"
+        ],
+        "explanation": "Every other option means old in some way. Only modern points the other direction."
+      },
+      {
+        "id": "ant-02",
+        "word": "generous",
+        "definition": "Willing to give more than is expected.",
+        "answer": "stingy",
+        "options": [
+          "stingy",
+          "kind",
+          "giving",
+          "charitable"
+        ],
+        "explanation": "Stingy means unwilling to give — the opposite of generous."
+      },
+      {
+        "id": "ant-03",
+        "word": "victory",
+        "definition": "Success in a contest or struggle.",
+        "answer": "defeat",
+        "options": [
+          "defeat",
+          "triumph",
+          "success",
+          "conquest",
+          "glory",
+          "achievement"
+        ],
+        "explanation": "The other seven are all ways of describing winning. Defeat is losing."
+      },
+      {
+        "id": "ant-04",
+        "word": "expand",
+        "definition": "To become larger in size or amount.",
+        "answer": "shrink",
+        "options": [
+          "shrink",
+          "grow",
+          "swell",
+          "widen",
+          "stretch",
+          "enlarge",
+          "increase"
+        ],
+        "explanation": "Shrink is the only word here that makes something smaller."
+      },
+      {
+        "id": "ant-05",
+        "word": "silent",
+        "definition": "Making no sound at all.",
+        "answer": "noisy",
+        "options": [
+          "noisy",
+          "quiet",
+          "hushed",
+          "still",
+          "calm"
+        ],
+        "explanation": "All the distractors describe quietness. Noisy is the true opposite."
+      },
+      {
+        "id": "ant-06",
+        "word": "brave",
+        "definition": "Showing courage in the face of danger.",
+        "answer": "cowardly",
+        "options": [
+          "cowardly",
+          "bold",
+          "daring"
+        ],
+        "explanation": "Cowardly is the opposite; the rest are all words for being brave."
+      }
+    ]
+  }
+}
